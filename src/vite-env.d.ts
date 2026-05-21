@@ -1,10 +1,21 @@
 /// <reference types="vite/client" />
 
+interface ChickRocksBlogPost {
+  slug: string;
+  title: string;
+  date: string;
+  image: string;
+  excerpt: string;
+  body: string;
+}
+
 interface Window {
   ChickRocksTheme?: {
     postId?: number;
     pageData?: Record<string, string>;
     allPageData?: Record<string, Record<string, string>>;
+    posts?: ChickRocksBlogPost[];
+    singlePost?: ChickRocksBlogPost | null;
     isLoggedIn?: boolean;
     restNonce?: string;
     restUrl?: string;

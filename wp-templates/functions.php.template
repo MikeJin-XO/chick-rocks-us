@@ -25,31 +25,197 @@ function <THEME_SLUG_FN>_enqueue_assets() {
 
     $page_data = array();
     if ($post_id) {
-        $meta = get_post_meta($post_id);
-        foreach ($meta as $key => $values) {
-            if (strpos($key, '_') !== 0 || $key === '_wp_page_template') {
-                $page_data[$key] = $values[0];
-            }
+        $page_data = <THEME_SLUG_FN>_collect_post_meta($post_id);
+    }
+
+    // Pre-bake every page's meta + every post's meta into a path-keyed map so
+    // client-side route changes hit the cache immediately instead of async-fetching
+    // and flashing React's hardcoded fallback values.
+    $all_page_data = <THEME_SLUG_FN>_build_all_page_data();
+
+    // Pre-bake the full post list for /blog so the React side renders WP posts on
+    // first paint instead of flashing the bundled DEMO_POSTS placeholders.
+    $posts_data = <THEME_SLUG_FN>_build_posts_data();
+
+    // When rendering a single post (single.php), embed that post's full data so
+    // BlogPost.tsx renders synchronously without a "Loading post…" flash.
+    $single_post = null;
+    if (is_single() && $post_id) {
+        $cur_post = get_post($post_id);
+        if ($cur_post) {
+            $single_post = <THEME_SLUG_FN>_map_post_to_blog_shape($cur_post);
         }
     }
 
     $default_media = get_option('<THEME_SLUG_FN>_default_media', array());
     if (!is_array($default_media)) $default_media = array();
 
+    // Section 3 of the X.O. Dashboard ("Promote Edited Images as Defaults") writes
+    // per-key entries like `xo_dashboard_default_hero_img` into wp_options. Surface
+    // them here so React's getDraftValue fallback chain (bridge.defaultMedia) picks
+    // them up without per-page meta needing to exist.
+    global $wpdb;
+    $promoted_rows = $wpdb->get_results(
+        "SELECT option_name, option_value
+         FROM {$wpdb->options}
+         WHERE option_name LIKE 'xo_dashboard_default_%'"
+    );
+    if (is_array($promoted_rows)) {
+        foreach ($promoted_rows as $row) {
+            $key = substr($row->option_name, strlen('xo_dashboard_default_'));
+            if ($key !== '' && (!isset($default_media[$key]) || $default_media[$key] === '')) {
+                $default_media[$key] = (string) $row->option_value;
+            }
+        }
+    }
+
+    $dashboard = array(
+        'businessName' => (string) get_option('xo_dashboard_business_name', get_bloginfo('name')),
+        'logo'         => (string) get_option('xo_dashboard_logo', ''),
+        'locationName' => (string) get_option('xo_dashboard_location_name', ''),
+        'cityState'    => (string) get_option('xo_dashboard_city_state', ''),
+        'phone'        => (string) get_option('xo_dashboard_store_phone', ''),
+        'email'        => function_exists('<THEME_SLUG_FN>_get_contact_email')
+                            ? <THEME_SLUG_FN>_get_contact_email()
+                            : (string) get_option('xo_dashboard_contact_email', ''),
+        'address'      => (string) get_option('xo_dashboard_store_address', ''),
+        'hours'        => (string) get_option('xo_dashboard_hours', ''),
+        'social'       => array(
+            'facebook'  => (string) get_option('xo_dashboard_facebook_url', ''),
+            'instagram' => (string) get_option('xo_dashboard_instagram_url', ''),
+            'linkedin'  => (string) get_option('xo_dashboard_linkedin_url', ''),
+            'tiktok'    => (string) get_option('xo_dashboard_tiktok_url', ''),
+        ),
+        'manager'      => (string) get_option('xo_dashboard_manager', ''),
+        'headerCta'    => (string) get_option('xo_dashboard_header_cta', 'Order Online'),
+    );
+
     if ($js) {
         wp_localize_script('<THEME_SLUG>-script', '<GLOBAL_NAME>', array(
             'postId'          => (int) $post_id,
             'pageData'        => $page_data,
+            'allPageData'     => $all_page_data,
+            'posts'           => $posts_data,
+            'singlePost'      => $single_post,
             'isLoggedIn'      => current_user_can('edit_posts'),
             'restUrl'         => set_url_scheme(esc_url_raw(rest_url()), 'https'),
             'restNonce'       => wp_create_nonce('wp_rest'),
             'themeUrl'        => $theme_uri,
             'currentLanguage' => 'en',
             'defaultMedia'    => $default_media,
+            'dashboard'       => $dashboard,
         ));
     }
 }
 add_action('wp_enqueue_scripts', '<THEME_SLUG_FN>_enqueue_assets');
+
+function <THEME_SLUG_FN>_collect_post_meta($post_id) {
+    $out = array();
+    $meta = get_post_meta($post_id);
+    foreach ($meta as $key => $values) {
+        if (strpos($key, '_') !== 0 || $key === '_wp_page_template') {
+            $out[$key] = $values[0];
+        }
+    }
+    return $out;
+}
+
+function <THEME_SLUG_FN>_path_for_post_id($post_id) {
+    $front_id = (int) get_option('page_on_front');
+    if ((int) $post_id === $front_id) return '/';
+    $permalink = get_permalink($post_id);
+    if (!$permalink) return '';
+    $parsed = parse_url($permalink, PHP_URL_PATH);
+    if (!is_string($parsed) || $parsed === '') return '';
+    $trimmed = '/' . trim($parsed, '/');
+    return $trimmed;
+}
+
+function <THEME_SLUG_FN>_register_page_data(&$out, $path, $data) {
+    if ($path === '') return;
+    $out[$path] = $data;
+    // location.pathname can be either `/menu` (React Router <Link>) or `/menu/`
+    // (WP default permalinks) — register both so the cache always hits.
+    if ($path !== '/' && substr($path, -1) !== '/') {
+        $out[$path . '/'] = $data;
+    }
+}
+
+function <THEME_SLUG_FN>_build_all_page_data() {
+    $out = array();
+
+    $pages = get_posts(array(
+        'numberposts' => -1,
+        'post_status' => 'publish',
+        'post_type'   => 'page',
+    ));
+    foreach ($pages as $page) {
+        $path = <THEME_SLUG_FN>_path_for_post_id($page->ID);
+        <THEME_SLUG_FN>_register_page_data($out, $path, <THEME_SLUG_FN>_collect_post_meta($page->ID));
+    }
+
+    $posts = get_posts(array(
+        'numberposts' => -1,
+        'post_status' => 'publish',
+        'post_type'   => 'post',
+    ));
+    foreach ($posts as $p) {
+        $path = <THEME_SLUG_FN>_path_for_post_id($p->ID);
+        <THEME_SLUG_FN>_register_page_data($out, $path, <THEME_SLUG_FN>_collect_post_meta($p->ID));
+    }
+
+    return $out;
+}
+
+function <THEME_SLUG_FN>_map_post_to_blog_shape($p) {
+    $thumb_id = get_post_thumbnail_id($p->ID);
+    $image = '';
+    if ($thumb_id) {
+        $img = wp_get_attachment_image_src($thumb_id, 'large');
+        if (!$img) $img = wp_get_attachment_image_src($thumb_id, 'medium_large');
+        if (!$img) $img = wp_get_attachment_image_src($thumb_id, 'full');
+        if ($img && !empty($img[0])) $image = $img[0];
+    }
+
+    // Match the JS stripHtml/excerpt formatting in src/lib/data/blog-wp.ts so the
+    // server-rendered shape and the REST-fetched shape are interchangeable.
+    $excerpt_raw = has_excerpt($p) ? $p->post_excerpt : wp_trim_excerpt('', $p);
+    $excerpt = wp_strip_all_tags((string) $excerpt_raw);
+    $excerpt = str_replace('&nbsp;', ' ', $excerpt);
+    $excerpt = preg_replace('/\s+/', ' ', $excerpt);
+    $excerpt = trim($excerpt);
+
+    $title = wp_strip_all_tags(get_the_title($p));
+
+    // Render the post body the same way `the_content` would on a WP single template
+    // (shortcodes, embeds, blocks) so it matches what /wp-json returns for the post.
+    $body = apply_filters('the_content', $p->post_content);
+    $body = str_replace(']]>', ']]&gt;', (string) $body);
+
+    return array(
+        'slug'    => $p->post_name ?: sanitize_title($p->post_title),
+        'title'   => $title,
+        'date'    => date_i18n('F j, Y', strtotime($p->post_date)),
+        'image'   => $image,
+        'excerpt' => $excerpt,
+        'body'    => $body,
+    );
+}
+
+function <THEME_SLUG_FN>_build_posts_data() {
+    $out = array();
+    $posts = get_posts(array(
+        'numberposts' => -1,
+        'post_status' => 'publish',
+        'post_type'   => 'post',
+        'orderby'     => 'date',
+        'order'       => 'DESC',
+    ));
+    foreach ($posts as $p) {
+        $out[] = <THEME_SLUG_FN>_map_post_to_blog_shape($p);
+    }
+    return $out;
+}
 
 add_filter('script_loader_tag', function ($tag, $handle, $src) {
     if ('<THEME_SLUG>-script' === $handle) {
@@ -108,6 +274,11 @@ add_action('rest_api_init', function () {
         'methods'  => 'POST',
         'callback' => '<THEME_SLUG_FN>_rest_refresh_text_content',
         'permission_callback' => function () { return current_user_can('edit_posts'); },
+    ));
+    register_rest_route('<REST_NAMESPACE>', '/submit-catering-lead', array(
+        'methods'  => 'POST',
+        'callback' => '<THEME_SLUG_FN>_rest_submit_catering_lead',
+        'permission_callback' => '__return_true',
     ));
 });
 
@@ -184,8 +355,12 @@ function <THEME_SLUG_FN>_purge_caches() {
     if (function_exists('wp_cache_flush'))            wp_cache_flush();
     if (function_exists('w3tc_flush_all'))            w3tc_flush_all();
     if (function_exists('wp_cache_clear_cache'))      wp_cache_clear_cache();
+    if (function_exists('rocket_clean_domain'))       rocket_clean_domain();
     if (class_exists('LiteSpeed_Cache_API') && method_exists('LiteSpeed_Cache_API', 'purge_all')) {
         LiteSpeed_Cache_API::purge_all();
+    }
+    if (class_exists('WPSEO_Sitemaps_Cache') && method_exists('WPSEO_Sitemaps_Cache', 'clear')) {
+        WPSEO_Sitemaps_Cache::clear();
     }
 }
 
@@ -274,4 +449,1204 @@ add_action('after_setup_theme', function () {
     add_theme_support('title-tag');
     add_theme_support('post-thumbnails');
     add_theme_support('html5', array('search-form', 'comment-form', 'comment-list', 'gallery', 'caption'));
+});
+
+/* 6. CATERING LEADS — custom post type, admin columns, REST submission */
+
+function <THEME_SLUG_FN>_register_catering_lead_cpt() {
+    register_post_type('catering_lead', array(
+        'labels' => array(
+            'name'               => 'Leads',
+            'singular_name'      => 'Lead',
+            'menu_name'          => 'Leads',
+            'all_items'          => 'All Leads',
+            'add_new'            => 'Add New',
+            'add_new_item'       => 'Add New Lead',
+            'edit_item'          => 'Edit Lead',
+            'view_item'          => 'View Lead',
+            'search_items'       => 'Search Leads',
+            'not_found'          => 'No leads found',
+            'not_found_in_trash' => 'No leads found in Trash',
+        ),
+        'public'             => false,
+        'show_ui'            => true,
+        'show_in_menu'       => true,
+        'menu_icon'          => 'dashicons-email-alt',
+        'capability_type'    => 'post',
+        'map_meta_cap'       => true,
+        'hierarchical'       => false,
+        'has_archive'        => false,
+        'rewrite'            => false,
+        'query_var'          => false,
+        'supports'           => array('title'),
+        'show_in_rest'       => false,
+    ));
+}
+add_action('init', '<THEME_SLUG_FN>_register_catering_lead_cpt');
+
+function <THEME_SLUG_FN>_rest_submit_catering_lead($request) {
+    $params = $request->get_json_params();
+    if (!is_array($params)) $params = $request->get_params();
+
+    $first      = sanitize_text_field((string) ($params['firstName']  ?? ''));
+    $last       = sanitize_text_field((string) ($params['lastName']   ?? ''));
+    $phone      = sanitize_text_field((string) ($params['phone']      ?? ''));
+    $email      = sanitize_email((string)      ($params['email']      ?? ''));
+    $party_size = sanitize_text_field((string) ($params['partySize']  ?? ''));
+    $event_date = sanitize_text_field((string) ($params['eventDate']  ?? ''));
+    $address    = sanitize_text_field((string) ($params['address']    ?? ''));
+    $latitude   = sanitize_text_field((string) ($params['latitude']   ?? ''));
+    $longitude  = sanitize_text_field((string) ($params['longitude']  ?? ''));
+
+    if ($first === '' || $last === '' || $phone === '' || $email === '' || $address === '') {
+        return new WP_Error('missing_fields', 'Please fill out all required fields.', array('status' => 400));
+    }
+    if (!is_email($email)) {
+        return new WP_Error('invalid_email', 'Please enter a valid email address.', array('status' => 400));
+    }
+
+    $title = sprintf(
+        'Catering Lead: %s %s (%s)',
+        $first,
+        $last,
+        $event_date !== '' ? $event_date : current_time('Y-m-d H:i')
+    );
+
+    $post_id = wp_insert_post(array(
+        'post_type'   => 'catering_lead',
+        'post_title'  => $title,
+        'post_status' => 'publish',
+    ), true);
+
+    if (is_wp_error($post_id) || !$post_id) {
+        return new WP_Error('insert_failed', 'Could not save your request. Please try again.', array('status' => 500));
+    }
+
+    update_post_meta($post_id, 'lead_first_name', $first);
+    update_post_meta($post_id, 'lead_last_name',  $last);
+    update_post_meta($post_id, 'lead_phone',      $phone);
+    update_post_meta($post_id, 'lead_email',      $email);
+    update_post_meta($post_id, 'lead_party_size', $party_size);
+    update_post_meta($post_id, 'lead_event_date', $event_date);
+    update_post_meta($post_id, 'lead_address',    $address);
+    update_post_meta($post_id, 'lead_latitude',   $latitude);
+    update_post_meta($post_id, 'lead_longitude',  $longitude);
+    update_post_meta($post_id, 'lead_status',     'new');
+    update_post_meta($post_id, 'lead_submitted_ip', isset($_SERVER['REMOTE_ADDR']) ? sanitize_text_field($_SERVER['REMOTE_ADDR']) : '');
+
+    // Reads xo_dashboard_contact_email first, falls back to the legacy option
+    // and finally to admin_email — see <THEME_SLUG_FN>_get_contact_email().
+    $notify_to = <THEME_SLUG_FN>_get_contact_email();
+    $sent = false;
+    if ($notify_to && is_email($notify_to)) {
+        $subject = sprintf('[Chick Rocks] New catering lead: %s %s', $first, $last);
+        $lines = array(
+            'A new catering lead was submitted on chickrocksus.com.',
+            '',
+            'Name:        ' . $first . ' ' . $last,
+            'Phone:       ' . $phone,
+            'Email:       ' . $email,
+            'Party size:  ' . $party_size,
+            'Event date:  ' . $event_date,
+            'Address:     ' . $address,
+        );
+        if ($latitude && $longitude) {
+            $lines[] = 'Map:         https://www.openstreetmap.org/?mlat=' . rawurlencode($latitude) . '&mlon=' . rawurlencode($longitude) . '#map=17/' . rawurlencode($latitude) . '/' . rawurlencode($longitude);
+        }
+        $lines[] = '';
+        $lines[] = 'View in admin: ' . admin_url('post.php?post=' . $post_id . '&action=edit');
+        $body = implode("\n", $lines);
+        $from_email = get_option('admin_email');
+        $site_host  = wp_parse_url(home_url(), PHP_URL_HOST);
+        if ($site_host && (!$from_email || !is_email($from_email))) {
+            $from_email = 'wordpress@' . preg_replace('/^www\./i', '', $site_host);
+        }
+        $headers = array(
+            'Content-Type: text/plain; charset=UTF-8',
+            'From: X.O. Continental <' . $from_email . '>',
+        );
+        $sent = (bool) wp_mail($notify_to, $subject, $body, $headers);
+    }
+    update_post_meta($post_id, 'lead_notification_sent', $sent ? 'yes' : 'no');
+    update_post_meta($post_id, 'lead_notification_to',   $notify_to);
+
+    return array('success' => true, 'id' => (int) $post_id, 'notified' => $sent);
+}
+
+/* Admin list table — column layout matches the Leads screen the client referenced */
+
+add_filter('manage_catering_lead_posts_columns', function ($columns) {
+    return array(
+        'cb'             => $columns['cb'] ?? '<input type="checkbox" />',
+        'lead_name'      => 'Name',
+        'lead_email'     => 'Email',
+        'lead_phone'     => 'Phone',
+        'lead_party'     => 'Party Size',
+        'lead_event'     => 'Event Date',
+        'lead_address'   => 'Address',
+        'lead_notify'    => 'Notification',
+        'lead_status'    => 'Status',
+        'lead_pdf'       => 'PDF',
+        'date'           => 'Date',
+    );
+});
+
+add_action('manage_catering_lead_posts_custom_column', function ($column, $post_id) {
+    switch ($column) {
+        case 'lead_name': {
+            $first = get_post_meta($post_id, 'lead_first_name', true);
+            $last  = get_post_meta($post_id, 'lead_last_name',  true);
+            $name  = trim($first . ' ' . $last);
+            $edit  = get_edit_post_link($post_id);
+            $title = get_the_title($post_id);
+            if ($edit) {
+                echo '<strong><a href="' . esc_url($edit) . '">' . esc_html($name !== '' ? $name : $title) . '</a></strong>';
+            } else {
+                echo '<strong>' . esc_html($name !== '' ? $name : $title) . '</strong>';
+            }
+            break;
+        }
+        case 'lead_email': {
+            $email = get_post_meta($post_id, 'lead_email', true);
+            if ($email) echo '<a href="mailto:' . esc_attr($email) . '">' . esc_html($email) . '</a>';
+            break;
+        }
+        case 'lead_phone': {
+            $phone = get_post_meta($post_id, 'lead_phone', true);
+            if ($phone) echo '<a href="tel:' . esc_attr($phone) . '">' . esc_html($phone) . '</a>';
+            break;
+        }
+        case 'lead_party': {
+            echo esc_html(get_post_meta($post_id, 'lead_party_size', true));
+            break;
+        }
+        case 'lead_event': {
+            echo esc_html(get_post_meta($post_id, 'lead_event_date', true));
+            break;
+        }
+        case 'lead_address': {
+            $address = get_post_meta($post_id, 'lead_address', true);
+            $lat     = get_post_meta($post_id, 'lead_latitude', true);
+            $lon     = get_post_meta($post_id, 'lead_longitude', true);
+            if ($lat && $lon) {
+                $url = 'https://www.openstreetmap.org/?mlat=' . rawurlencode($lat) . '&mlon=' . rawurlencode($lon) . '#map=17/' . rawurlencode($lat) . '/' . rawurlencode($lon);
+                echo '<a href="' . esc_url($url) . '" target="_blank" rel="noopener">' . esc_html($address) . '</a>';
+            } else {
+                echo esc_html($address);
+            }
+            break;
+        }
+        case 'lead_notify': {
+            $sent = get_post_meta($post_id, 'lead_notification_sent', true);
+            $to   = get_post_meta($post_id, 'lead_notification_to', true);
+            if ($sent === 'yes') {
+                echo '<span title="Sent to ' . esc_attr($to) . '" style="color:#1e8e3e;font-weight:600;">&#10003; Sent</span>';
+                if ($to) {
+                    echo '<br><span style="color:#666;font-size:11px;">' . esc_html($to) . '</span>';
+                }
+            } else {
+                echo '<span style="color:#c00;font-weight:600;">&#10007; Not sent</span>';
+            }
+            break;
+        }
+        case 'lead_status': {
+            $status = get_post_meta($post_id, 'lead_status', true) ?: 'new';
+            if ($status === 'reviewed') {
+                echo '<span style="display:inline-block;padding:3px 10px;border-radius:999px;background:#e6f4ea;color:#1e8e3e;font-weight:600;font-size:11px;text-transform:uppercase;letter-spacing:0.04em;">Reviewed</span>';
+            } else {
+                $url = wp_nonce_url(
+                    admin_url('admin-post.php?action=<THEME_SLUG_FN>_mark_lead_reviewed&post=' . $post_id),
+                    '<THEME_SLUG_FN>_mark_lead_reviewed_' . $post_id
+                );
+                echo '<a href="' . esc_url($url) . '" class="button button-secondary">Mark reviewed</a>';
+            }
+            break;
+        }
+        case 'lead_pdf': {
+            echo '<button type="button" class="button button-small xo-download-lead-pdf" data-lead-id="' . esc_attr($post_id) . '">Download PDF</button>';
+            break;
+        }
+    }
+}, 10, 2);
+
+add_filter('manage_edit-catering_lead_sortable_columns', function ($columns) {
+    $columns['lead_event']  = 'lead_event';
+    $columns['lead_status'] = 'lead_status';
+    return $columns;
+});
+
+add_action('pre_get_posts', function ($query) {
+    if (!is_admin() || !$query->is_main_query()) return;
+    $screen = function_exists('get_current_screen') ? get_current_screen() : null;
+    if (!$screen || $screen->post_type !== 'catering_lead') return;
+    $orderby = $query->get('orderby');
+    if ($orderby === 'lead_event') {
+        $query->set('meta_key', 'lead_event_date');
+        $query->set('orderby', 'meta_value');
+    } elseif ($orderby === 'lead_status') {
+        $query->set('meta_key', 'lead_status');
+        $query->set('orderby', 'meta_value');
+    }
+});
+
+add_action('admin_post_<THEME_SLUG_FN>_mark_lead_reviewed', function () {
+    $post_id = isset($_GET['post']) ? (int) $_GET['post'] : 0;
+    if (!$post_id || !current_user_can('edit_post', $post_id)) wp_die('Not allowed.');
+    check_admin_referer('<THEME_SLUG_FN>_mark_lead_reviewed_' . $post_id);
+    update_post_meta($post_id, 'lead_status', 'reviewed');
+    $redirect = wp_get_referer() ?: admin_url('edit.php?post_type=catering_lead');
+    wp_safe_redirect($redirect);
+    exit;
+});
+
+add_action('add_meta_boxes', function () {
+    add_meta_box(
+        'catering_lead_details',
+        'Lead Details',
+        function ($post) {
+            $rows = array(
+                'First name'  => get_post_meta($post->ID, 'lead_first_name', true),
+                'Last name'   => get_post_meta($post->ID, 'lead_last_name', true),
+                'Phone'       => get_post_meta($post->ID, 'lead_phone', true),
+                'Email'       => get_post_meta($post->ID, 'lead_email', true),
+                'Party size'  => get_post_meta($post->ID, 'lead_party_size', true),
+                'Event date'  => get_post_meta($post->ID, 'lead_event_date', true),
+                'Address'     => get_post_meta($post->ID, 'lead_address', true),
+                'Latitude'    => get_post_meta($post->ID, 'lead_latitude', true),
+                'Longitude'   => get_post_meta($post->ID, 'lead_longitude', true),
+                'Status'      => get_post_meta($post->ID, 'lead_status', true) ?: 'new',
+                'Submitted IP'=> get_post_meta($post->ID, 'lead_submitted_ip', true),
+            );
+            echo '<table class="form-table"><tbody>';
+            foreach ($rows as $label => $value) {
+                echo '<tr><th style="width:140px;">' . esc_html($label) . '</th><td>' . esc_html((string) $value) . '</td></tr>';
+            }
+            echo '</tbody></table>';
+            $lat = get_post_meta($post->ID, 'lead_latitude', true);
+            $lon = get_post_meta($post->ID, 'lead_longitude', true);
+            if ($lat && $lon) {
+                $bbox_d = 0.005;
+                $latN = (float) $lat; $lonN = (float) $lon;
+                $bbox = ($lonN - $bbox_d) . ',' . ($latN - $bbox_d) . ',' . ($lonN + $bbox_d) . ',' . ($latN + $bbox_d);
+                $src = 'https://www.openstreetmap.org/export/embed.html?bbox=' . rawurlencode($bbox) . '&layer=mapnik&marker=' . rawurlencode($latN . ',' . $lonN);
+                echo '<iframe src="' . esc_url($src) . '" style="width:100%;height:260px;border:1px solid #ddd;border-radius:6px;margin-top:12px;" loading="lazy"></iframe>';
+            }
+        },
+        'catering_lead',
+        'normal',
+        'high'
+    );
+});
+
+/* 6b. X.O. DASHBOARD — universal Fine-Tune Details settings registration */
+
+function <THEME_SLUG_FN>_register_dashboard_settings() {
+    $opts = array(
+        'xo_dashboard_business_name'  => 'sanitize_text_field',
+        'xo_dashboard_logo'           => 'esc_url_raw',
+        'xo_dashboard_location_name'  => 'sanitize_text_field',
+        'xo_dashboard_city_state'     => 'sanitize_text_field',
+        'xo_dashboard_store_phone'    => 'sanitize_text_field',
+        'xo_dashboard_contact_email'  => 'sanitize_email',
+        'xo_dashboard_store_address'  => 'sanitize_text_field',
+        'xo_dashboard_hours'          => 'sanitize_textarea_field',
+        'xo_dashboard_facebook_url'   => 'esc_url_raw',
+        'xo_dashboard_instagram_url'  => 'esc_url_raw',
+        'xo_dashboard_linkedin_url'   => 'esc_url_raw',
+        'xo_dashboard_tiktok_url'     => 'esc_url_raw',
+        'xo_dashboard_manager'        => 'sanitize_text_field',
+        'xo_dashboard_header_cta'     => 'sanitize_text_field',
+    );
+    foreach ($opts as $key => $sanitize) {
+        register_setting('xo_dashboard_settings', $key, array('sanitize_callback' => $sanitize));
+    }
+}
+add_action('admin_init', '<THEME_SLUG_FN>_register_dashboard_settings');
+
+/* Helper: where the rest of the theme reads "the admin's notification address" from.
+ * Reads the new universal field first, falls back to the legacy option key that
+ * earlier builds wrote to so existing sites don't lose their setting. */
+function <THEME_SLUG_FN>_get_contact_email() {
+    $email = trim((string) get_option('xo_dashboard_contact_email', ''));
+    if ($email === '' || !is_email($email)) {
+        $email = trim((string) get_option('<THEME_SLUG_FN>_lead_notification_email', ''));
+    }
+    if ($email === '' || !is_email($email)) {
+        $email = (string) get_option('admin_email');
+    }
+    return $email;
+}
+
+/* 6c. X.O. DASHBOARD — admin action dispatcher (Sections 2, 3, 4, 7 + Yoast stubs) */
+
+add_action('admin_init', function () {
+    if (!isset($_GET['page']) || $_GET['page'] !== 'xo-dashboard-settings') return;
+    if (!isset($_GET['action'])) return;
+    if (!current_user_can('manage_options')) wp_die('Insufficient permissions.');
+
+    switch ($_GET['action']) {
+        case 'refresh_text_content':   <THEME_SLUG_FN>_action_refresh_text_content(); break;
+        case 'promote_image_defaults': <THEME_SLUG_FN>_action_promote_image_defaults(); break;
+        case 'flush_rewrite':          <THEME_SLUG_FN>_action_flush_rewrite(); break;
+        case 'master_reset':           <THEME_SLUG_FN>_action_master_reset(); break;
+        case 'yoast_sync_preview':
+        case 'yoast_sync_apply':
+        case 'yoast_sync_clear':
+            <THEME_SLUG_FN>_action_yoast_stub($_GET['action']);
+            break;
+    }
+});
+
+/* Section 2: Refresh Text Content — global wipe of page-level text overrides, keeps images. */
+function <THEME_SLUG_FN>_action_refresh_text_content() {
+    global $wpdb;
+    $where = array(
+        "p.post_type = 'page'",
+        "pm.meta_key NOT LIKE '\\_%'",
+        "pm.meta_key NOT LIKE '%_img%'",
+        "pm.meta_key NOT LIKE '%_image%'",
+        "pm.meta_key NOT LIKE '%_bg%'",
+        "pm.meta_key NOT LIKE '%_photo%'",
+        "pm.meta_key NOT LIKE '%_icon%'",
+        "pm.meta_key NOT LIKE '%_logo%'",
+        "pm.meta_key NOT LIKE '%_banner%'",
+    );
+    $sql = "DELETE pm FROM {$wpdb->postmeta} pm
+            INNER JOIN {$wpdb->posts} p ON p.ID = pm.post_id
+            WHERE " . implode(' AND ', $where);
+    $deleted = (int) $wpdb->query($sql);
+    <THEME_SLUG_FN>_purge_caches();
+    wp_safe_redirect(admin_url('admin.php?page=xo-dashboard-settings&text_refreshed=' . $deleted));
+    exit;
+}
+
+/* Section 3: Promote Edited Images as Defaults — copy latest image overrides into
+ * global `xo_dashboard_default_<key>` options + backfill missing pages. */
+function <THEME_SLUG_FN>_action_promote_image_defaults() {
+    $result = <THEME_SLUG_FN>_promote_image_defaults();
+    wp_safe_redirect(admin_url(sprintf(
+        'admin.php?page=xo-dashboard-settings&images_promoted=%d&page_updates=%d',
+        (int) ($result['promoted_count'] ?? 0),
+        (int) ($result['page_updates']   ?? 0)
+    )));
+    exit;
+}
+
+function <THEME_SLUG_FN>_promote_image_defaults() {
+    global $wpdb;
+    $promoted_count = 0;
+    $page_updates   = 0;
+
+    $image_keys = $wpdb->get_col(
+        "SELECT DISTINCT pm.meta_key
+         FROM {$wpdb->postmeta} pm
+         INNER JOIN {$wpdb->posts} p ON p.ID = pm.post_id
+         WHERE p.post_type = 'page'
+           AND (pm.meta_key LIKE '%_img%'
+                OR pm.meta_key LIKE '%_image%'
+                OR pm.meta_key LIKE '%_bg%'
+                OR pm.meta_key LIKE '%_photo%'
+                OR pm.meta_key LIKE '%_icon%'
+                OR pm.meta_key LIKE '%_logo%'
+                OR pm.meta_key LIKE '%_banner%')"
+    );
+
+    foreach ((array) $image_keys as $key) {
+        if (strpos($key, '_') === 0) continue;
+        $row = $wpdb->get_row($wpdb->prepare(
+            "SELECT pm.meta_value, pm.post_id
+             FROM {$wpdb->postmeta} pm
+             INNER JOIN {$wpdb->posts} p ON p.ID = pm.post_id
+             WHERE pm.meta_key = %s
+               AND pm.meta_value != ''
+               AND p.post_type = 'page'
+             ORDER BY p.post_modified DESC
+             LIMIT 1",
+            $key
+        ));
+        if (!$row || $row->meta_value === '') continue;
+
+        update_option('xo_dashboard_default_' . $key, $row->meta_value);
+        $promoted_count++;
+
+        $missing_pages = $wpdb->get_col($wpdb->prepare(
+            "SELECT p.ID FROM {$wpdb->posts} p
+             LEFT JOIN {$wpdb->postmeta} pm ON pm.post_id = p.ID AND pm.meta_key = %s
+             WHERE p.post_type = 'page'
+               AND p.post_status = 'publish'
+               AND (pm.meta_value IS NULL OR pm.meta_value = '')",
+            $key
+        ));
+        foreach ($missing_pages as $pid) {
+            update_post_meta($pid, $key, $row->meta_value);
+            $page_updates++;
+        }
+    }
+
+    <THEME_SLUG_FN>_purge_caches();
+    return array('promoted_count' => $promoted_count, 'page_updates' => $page_updates);
+}
+
+/* Section 4: Sitemap refresh — flush rewrite + regenerate physical /sitemap.xml + /robots.txt. */
+function <THEME_SLUG_FN>_action_flush_rewrite() {
+    flush_rewrite_rules();
+    <THEME_SLUG_FN>_generate_physical_sitemap();
+    <THEME_SLUG_FN>_generate_physical_robots_txt();
+    <THEME_SLUG_FN>_purge_caches();
+    wp_safe_redirect(admin_url('admin.php?page=xo-dashboard-settings&flushed=1'));
+    exit;
+}
+
+/* Mirror Yoast's sitemap_index.xml into a physical /sitemap.xml so SE Ranking
+ * and similar audit crawlers see a 200 instead of a 301 → /sitemap_index.xml.
+ * If Yoast isn't installed, fall back to the dynamic /sitemap.xml that the
+ * <THEME_SLUG_FN>_sitemap_handler emits (still a real 200). */
+function <THEME_SLUG_FN>_generate_physical_sitemap() {
+    $site_url = home_url();
+    $post_mod = date('c');
+    $page_mod = date('c');
+
+    $resp = wp_remote_get($site_url . '/sitemap_index.xml', array('timeout' => 10, 'sslverify' => false));
+    if (!is_wp_error($resp) && wp_remote_retrieve_response_code($resp) === 200) {
+        $body = wp_remote_retrieve_body($resp);
+        if (preg_match('~post-sitemap\.xml</loc>\s*<lastmod>([^<]+)</lastmod>~', $body, $m)) $post_mod = $m[1];
+        if (preg_match('~page-sitemap\.xml</loc>\s*<lastmod>([^<]+)</lastmod>~', $body, $m)) $page_mod = $m[1];
+        $xsl = '//' . parse_url($site_url, PHP_URL_HOST) . '/wp-content/plugins/wordpress-seo/css/main-sitemap.xsl';
+        $xml  = '<?xml version="1.0" encoding="UTF-8"?>' . "\n";
+        $xml .= '<?xml-stylesheet type="text/xsl" href="' . $xsl . '"?>' . "\n";
+        $xml .= '<sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">' . "\n";
+        $xml .= "\t<sitemap>\n\t\t<loc>{$site_url}/post-sitemap.xml</loc>\n\t\t<lastmod>{$post_mod}</lastmod>\n\t</sitemap>\n";
+        $xml .= "\t<sitemap>\n\t\t<loc>{$site_url}/page-sitemap.xml</loc>\n\t\t<lastmod>{$page_mod}</lastmod>\n\t</sitemap>\n";
+        $xml .= '</sitemapindex>' . "\n";
+        @file_put_contents(ABSPATH . 'sitemap.xml', $xml);
+        return;
+    }
+
+    // No Yoast — snapshot the dynamic theme sitemap into a static file instead.
+    $dynamic = wp_remote_get($site_url . '/sitemap.xml', array(
+        'timeout'    => 10,
+        'sslverify'  => false,
+        'headers'    => array('User-Agent' => 'XO-Dashboard-Sitemap-Snapshot'),
+        // Bypass our own handler so we get the dynamic XML, not the future static one
+        'redirection' => 0,
+    ));
+    if (!is_wp_error($dynamic) && wp_remote_retrieve_response_code($dynamic) === 200) {
+        $xml = wp_remote_retrieve_body($dynamic);
+        if (is_string($xml) && strpos($xml, '<urlset') !== false) {
+            @file_put_contents(ABSPATH . 'sitemap.xml', $xml);
+        }
+    }
+}
+
+function <THEME_SLUG_FN>_generate_physical_robots_txt() {
+    $site_url = home_url();
+    $robots  = "User-agent: *\nDisallow:\n\n";
+    $robots .= "Sitemap: {$site_url}/sitemap_index.xml\n";
+    $robots .= "Sitemap: {$site_url}/sitemap.xml\n";
+    @file_put_contents(ABSPATH . 'robots.txt', $robots);
+}
+
+add_filter('robots_txt', function ($output) {
+    $line = 'Sitemap: ' . home_url('/sitemap.xml');
+    if (strpos($output, $line) === false) $output .= $line . "\n";
+    return $output;
+}, 99);
+
+add_action('after_switch_theme', function () {
+    <THEME_SLUG_FN>_generate_physical_sitemap();
+    <THEME_SLUG_FN>_generate_physical_robots_txt();
+});
+
+/* If the physical sitemap.xml exists in ABSPATH, the dynamic handler must not run
+ * for that path or it'll double-emit XML. WP serves the file first, so this is a
+ * defensive no-op — but keep it explicit for clarity. */
+
+/* Section 7: Master Reset — wipe every non-system row in wp_postmeta for pages only.
+ * Scoped to post_type='page' to preserve customer leads (catering_lead CPT uses
+ * meta keys without underscores: lead_email, lead_phone, etc., which would
+ * otherwise be obliterated by an unscoped DELETE). */
+function <THEME_SLUG_FN>_action_master_reset() {
+    global $wpdb;
+    $wpdb->query(
+        "DELETE pm FROM {$wpdb->postmeta} pm
+         INNER JOIN {$wpdb->posts} p ON p.ID = pm.post_id
+         WHERE p.post_type = 'page'
+           AND pm.meta_key NOT LIKE '\\_%'"
+    );
+    <THEME_SLUG_FN>_purge_caches();
+    wp_safe_redirect(admin_url('admin.php?page=xo-dashboard-settings&reset=1'));
+    exit;
+}
+
+/* Section 6 stub: Yoast sync engine ships separately via the yoast-sync-for-wp-spa skill.
+ * Until that skill is run, all three buttons land here and explain how to install it. */
+function <THEME_SLUG_FN>_action_yoast_stub($which) {
+    $codes = array(
+        'yoast_sync_preview' => 'yoast_not_installed_preview',
+        'yoast_sync_apply'   => 'yoast_not_installed_apply',
+        'yoast_sync_clear'   => 'yoast_not_installed_clear',
+    );
+    $code = $codes[$which] ?? 'yoast_not_installed';
+    wp_safe_redirect(admin_url('admin.php?page=xo-dashboard-settings&' . $code . '=1'));
+    exit;
+}
+
+/* 7. X.O. DASHBOARD — admin menu + settings
+ *
+ * Label:   "X.O. Dashboard"
+ * Slug:    xo-dashboard-settings  (drives #toplevel_page_xo-dashboard-settings)
+ * Options: xo_dashboard_*         (universal Fine-Tune Details field set)
+ *
+ * The Leads CPT below uses slug `catering_lead` for backward-compat with existing
+ * data and the /submit-catering-lead REST endpoint. CSS targets #menu-posts-catering_lead.
+ */
+
+function <THEME_SLUG_FN>_brand_menu_icon() {
+    // Inline SVG so the icon doesn't depend on theme assets being available.
+    $svg = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="black"><path d="M12 2c-2.8 0-5 2.2-5 5 0 .9.2 1.7.6 2.4C5.5 10.2 4 12.4 4 15c0 3.3 2.7 6 6 6h4c3.3 0 6-2.7 6-6 0-2.6-1.5-4.8-3.6-5.6.4-.7.6-1.5.6-2.4 0-2.8-2.2-5-5-5zm-1 5c0-.6.4-1 1-1s1 .4 1 1-.4 1-1 1-1-.4-1-1zm5 9c-.6 0-1-.4-1-1s.4-1 1-1 1 .4 1 1-.4 1-1 1z"/></svg>';
+    return 'data:image/svg+xml;base64,' . base64_encode($svg);
+}
+
+add_action('admin_menu', function () {
+    add_menu_page(
+        'X.O. Dashboard',
+        'X.O. Dashboard',
+        'manage_options',
+        'xo-dashboard-settings',
+        '<THEME_SLUG_FN>_render_settings_page',
+        <THEME_SLUG_FN>_brand_menu_icon(),
+        2
+    );
+});
+
+/* Reorder admin menu so X.O. Dashboard + Leads sit at the top, adjacent, right under Dashboard. */
+add_action('admin_menu', function () {
+    global $menu;
+    if (!is_array($menu)) return;
+
+    $xo = null;
+    $leads = null;
+    foreach ($menu as $key => $item) {
+        if (!isset($item[2])) continue;
+        if ($item[2] === 'xo-dashboard-settings') {
+            $xo = $item;
+            unset($menu[$key]);
+        } elseif ($item[2] === 'edit.php?post_type=catering_lead') {
+            $leads = $item;
+            unset($menu[$key]);
+        }
+    }
+
+    $reordered = array();
+    $inserted = false;
+    foreach ($menu as $item) {
+        $reordered[] = $item;
+        if (!$inserted && isset($item[2]) && $item[2] === 'index.php') {
+            if ($xo)    $reordered[] = $xo;
+            if ($leads) $reordered[] = $leads;
+            $inserted = true;
+        }
+    }
+    if (!$inserted) {
+        $prefix = array();
+        if ($xo)    $prefix[] = $xo;
+        if ($leads) $prefix[] = $leads;
+        $reordered = array_merge($prefix, $reordered);
+    }
+    $menu = $reordered;
+}, 9999);
+
+/* Gold highlight that stays gold in active/current/hover states. */
+add_action('admin_head', function () {
+    ?>
+    <style>
+        #adminmenu #toplevel_page_xo-dashboard-settings,
+        #adminmenu #toplevel_page_xo-dashboard-settings.wp-has-current-submenu,
+        #adminmenu #toplevel_page_xo-dashboard-settings.wp-menu-open,
+        #adminmenu #toplevel_page_xo-dashboard-settings.current,
+        #adminmenu #toplevel_page_xo-dashboard-settings:hover,
+        #adminmenu #menu-posts-catering_lead,
+        #adminmenu #menu-posts-catering_lead.wp-has-current-submenu,
+        #adminmenu #menu-posts-catering_lead.wp-menu-open,
+        #adminmenu #menu-posts-catering_lead.current,
+        #adminmenu #menu-posts-catering_lead:hover {
+            background-color: #d4a017 !important;
+        }
+        #adminmenu #toplevel_page_xo-dashboard-settings > a.menu-top,
+        #adminmenu #menu-posts-catering_lead > a.menu-top,
+        #adminmenu #toplevel_page_xo-dashboard-settings .wp-menu-name,
+        #adminmenu #menu-posts-catering_lead .wp-menu-name {
+            color: #ffffff !important;
+            font-weight: 600;
+        }
+        #adminmenu #toplevel_page_xo-dashboard-settings div.wp-menu-image::before,
+        #adminmenu #menu-posts-catering_lead div.wp-menu-image::before {
+            color: #ffffff !important;
+        }
+        #adminmenu #toplevel_page_xo-dashboard-settings .wp-menu-image img {
+            opacity: 1;
+            filter: brightness(0) invert(1);
+        }
+        #adminmenu #menu-posts-catering_lead .awaiting-mod {
+            background: #d63638;
+            color: #fff;
+        }
+    </style>
+    <?php
+});
+
+function <THEME_SLUG_FN>_admin_page_styles() {
+    return '
+        .xo-wrap { max-width: 1400px; margin: 15px 20px 40px 0; }
+        .xo-header { margin-bottom: 18px; }
+        .xo-header h1 { font-size: 24px; font-weight: 600; margin: 0 0 6px; }
+        .xo-meta { color: #666; font-size: 12px; line-height: 1.5; max-width: 720px; }
+        .xo-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; align-items: start; row-gap: 18px; }
+        @media (max-width: 1100px) { .xo-grid { grid-template-columns: 1fr; } }
+        .xo-section { background: #fff; border: 1px solid #ccd0d4; border-radius: 4px; padding: 18px 20px; box-shadow: 0 1px 1px rgba(0,0,0,.04); }
+        .xo-section h2 { font-size: 16px; font-weight: 600; margin: 0 0 10px; display: flex; align-items: center; gap: 7px; }
+        .xo-section h2 .dashicons { color: #d4a017; font-size: 18px; }
+        .xo-section p { margin: 0 0 12px; color: #555; line-height: 1.5; font-size: 13px; }
+        .xo-section.xo-full { grid-column: 1 / -1; }
+        .xo-btn { display: inline-block; padding: 8px 16px; background: #2271b1; color: #fff !important; text-decoration: none; border-radius: 3px; border: none; cursor: pointer; font-size: 13px; font-weight: 500; transition: background .2s; }
+        .xo-btn:hover { background: #135e96; }
+        .xo-btn-secondary { background: #fff; color: #2271b1 !important; border: 1px solid #2271b1; }
+        .xo-btn-danger { background: #b32d2e; color: #fff !important; }
+        .xo-btn-danger:hover { background: #8a2122; }
+        .xo-btn-disabled { background: #e1e1e1; color: #6f6f6f !important; pointer-events: none; cursor: not-allowed; }
+        .xo-warning { background: #fff3cd; border-left: 4px solid #ffc107; padding: 10px 12px; margin: 12px 0; color: #856404; font-size: 13px; }
+        .xo-info { background: #e7f3ff; border-left: 4px solid #2271b1; padding: 10px 12px; margin: 12px 0; color: #1d4e80; font-size: 13px; }
+        .xo-danger { background: #fdeaea; border-left: 4px solid #b32d2e; padding: 10px 12px; margin: 12px 0; color: #6d1a1a; font-size: 13px; }
+        .xo-url-box { background: #f6f7f7; padding: 10px; border-radius: 3px; font-family: monospace; margin: 8px 0; word-break: break-all; font-size: 12px; }
+        .xo-form-table { width: 100%; }
+        .xo-form-table tr { border-bottom: 1px solid #f0f0f1; }
+        .xo-form-table th { width: 160px; padding: 10px 10px 10px 0; text-align: left; font-weight: 600; vertical-align: top; font-size: 13px; }
+        .xo-form-table td { padding: 10px 0; }
+        .xo-form-table input[type="text"],
+        .xo-form-table input[type="email"],
+        .xo-form-table input[type="tel"],
+        .xo-form-table input[type="url"],
+        .xo-form-table textarea { width: 100%; max-width: 480px; padding: 6px 10px; border: 1px solid #8c8f94; border-radius: 3px; font-size: 13px; box-sizing: border-box; }
+        .xo-form-table textarea { min-height: 90px; }
+        .xo-form-table .description { margin-top: 4px; color: #646970; font-size: 12px; line-height: 1.4; max-width: 480px; }
+        .xo-logo-preview { display: inline-block; padding: 8px; background: #1f1f1f; border-radius: 4px; margin-right: 10px; vertical-align: middle; }
+        .xo-logo-preview img { max-height: 56px; max-width: 200px; display: block; }
+    ';
+}
+
+function <THEME_SLUG_FN>_render_settings_page() {
+    if (!current_user_can('manage_options')) return;
+
+    // CRITICAL: enqueue wp.media so the logo uploader works. Without this the
+    // "Upload Logo" button silently does nothing.
+    wp_enqueue_media();
+
+    $business_name = (string) get_option('xo_dashboard_business_name', get_bloginfo('name'));
+    $logo          = (string) get_option('xo_dashboard_logo', '');
+    $location_name = (string) get_option('xo_dashboard_location_name', 'Astoria');
+    $city_state    = (string) get_option('xo_dashboard_city_state', 'Astoria, NY');
+    $phone         = (string) get_option('xo_dashboard_store_phone', '');
+    $email         = <THEME_SLUG_FN>_get_contact_email();
+    $address       = (string) get_option('xo_dashboard_store_address', '');
+    $hours         = (string) get_option('xo_dashboard_hours', '');
+    $facebook_url  = (string) get_option('xo_dashboard_facebook_url', '');
+    $instagram_url = (string) get_option('xo_dashboard_instagram_url', '');
+    $linkedin_url  = (string) get_option('xo_dashboard_linkedin_url', '');
+    $tiktok_url    = (string) get_option('xo_dashboard_tiktok_url', '');
+    $manager       = (string) get_option('xo_dashboard_manager', '');
+    $header_cta    = (string) get_option('xo_dashboard_header_cta', 'Order Online');
+    $sitemap_url   = home_url('/sitemap.xml');
+    $physical_sm   = file_exists(ABSPATH . 'sitemap.xml');
+    $physical_rb   = file_exists(ABSPATH . 'robots.txt');
+    $yoast_loaded  = defined('WPSEO_VERSION');
+
+    // One-shot status banners (driven by ?text_refreshed=N etc. from the action handlers)
+    $notices = array();
+    if (isset($_GET['settings-updated']))         $notices[] = array('success', 'Settings saved.');
+    if (isset($_GET['text_refreshed']))           $notices[] = array('success', sprintf('Text content refreshed — %d meta rows wiped. Images preserved.', (int) $_GET['text_refreshed']));
+    if (isset($_GET['images_promoted']))          $notices[] = array('success', sprintf('Promoted %d image keys as defaults; backfilled %d pages.', (int) $_GET['images_promoted'], (int) ($_GET['page_updates'] ?? 0)));
+    if (isset($_GET['flushed']))                  $notices[] = array('success', 'Rewrite rules flushed. Physical /sitemap.xml + /robots.txt regenerated.');
+    if (isset($_GET['reset']))                    $notices[] = array('success', 'Master reset complete — every non-system page meta wiped. The site now falls back to the React code defaults.');
+    if (isset($_GET['yoast_not_installed_preview']) || isset($_GET['yoast_not_installed_apply']) || isset($_GET['yoast_not_installed_clear']) || isset($_GET['yoast_not_installed'])) {
+        $notices[] = array('warning', 'Yoast SEO sync engine isn\'t installed yet. Run the <code>yoast-sync-for-wp-spa</code> skill to wire up the three sync buttons.');
+    }
+    ?>
+    <style><?php echo <THEME_SLUG_FN>_admin_page_styles(); ?></style>
+    <div class="wrap xo-wrap">
+        <div class="xo-header">
+            <h1>X.O. Dashboard</h1>
+            <p class="xo-meta">One screen to edit the public-facing details of the Chick Rocks site — logo, hours, contact info, social links — and to run site-wide maintenance like refreshing content, fixing SEO, and syncing Yoast.</p>
+        </div>
+
+        <?php foreach ($notices as $n): ?>
+            <div class="notice notice-<?php echo esc_attr($n[0]); ?> is-dismissible"><p><?php echo wp_kses_post($n[1]); ?></p></div>
+        <?php endforeach; ?>
+
+        <div class="xo-grid">
+
+            <!-- ─────────────────────────────────────────────────────────── -->
+            <!-- Section 1: Fine-Tune Details (full-width row)               -->
+            <!-- ─────────────────────────────────────────────────────────── -->
+            <div class="xo-section xo-full">
+                <h2><span class="dashicons dashicons-edit"></span>Fine-Tune Details</h2>
+                <p>These values get baked into the React frontend (header, footer, contact page) and become the source of truth for lead-notification emails and structured-data schema.</p>
+
+                <form method="post" action="options.php">
+                    <?php settings_fields('xo_dashboard_settings'); ?>
+
+                    <table class="xo-form-table">
+                        <tr>
+                            <th><label for="xo_dashboard_business_name">Business name</label></th>
+                            <td>
+                                <input type="text" id="xo_dashboard_business_name" name="xo_dashboard_business_name" value="<?php echo esc_attr($business_name); ?>" />
+                                <p class="description">Appears in the header (if no logo is set), the footer, and the OG title fallback.</p>
+                            </td>
+                        </tr>
+
+                        <tr>
+                            <th><label for="xo_dashboard_logo">Logo</label></th>
+                            <td>
+                                <?php if ($logo): ?>
+                                    <span class="xo-logo-preview"><img id="xo_logo_preview_img" src="<?php echo esc_url($logo); ?>" alt="Current logo" /></span>
+                                <?php else: ?>
+                                    <span class="xo-logo-preview"><img id="xo_logo_preview_img" src="" alt="No logo set" style="display:none;" /></span>
+                                <?php endif; ?>
+                                <input type="text" id="xo_dashboard_logo" name="xo_dashboard_logo" value="<?php echo esc_attr($logo); ?>" style="max-width:360px;" />
+                                <br><br>
+                                <button type="button" id="xo_upload_logo_button" class="button">Upload Logo</button>
+                                <button type="button" id="xo_remove_logo_button" class="button">Remove</button>
+                                <p class="description">PNG with transparency. The header applies <code>filter: brightness(0) invert(1)</code> on dark backgrounds, so use a black-on-transparent logo for best results.</p>
+                            </td>
+                        </tr>
+
+                        <tr>
+                            <th><label for="xo_dashboard_location_name">Location name</label></th>
+                            <td>
+                                <input type="text" id="xo_dashboard_location_name" name="xo_dashboard_location_name" value="<?php echo esc_attr($location_name); ?>" />
+                                <p class="description">"Visit us in <strong><?php echo esc_html($location_name); ?></strong>" — neighborhood name.</p>
+                            </td>
+                        </tr>
+
+                        <tr>
+                            <th><label for="xo_dashboard_city_state">City, State</label></th>
+                            <td>
+                                <input type="text" id="xo_dashboard_city_state" name="xo_dashboard_city_state" value="<?php echo esc_attr($city_state); ?>" placeholder="Astoria, NY" />
+                                <p class="description">Used in local-SEO schema and the footer.</p>
+                            </td>
+                        </tr>
+
+                        <tr>
+                            <th><label for="xo_dashboard_store_phone">Phone</label></th>
+                            <td>
+                                <input type="tel" id="xo_dashboard_store_phone" name="xo_dashboard_store_phone" value="<?php echo esc_attr($phone); ?>" placeholder="(718) 555-0123" />
+                                <p class="description">Becomes <code>tel:</code> links throughout the site.</p>
+                            </td>
+                        </tr>
+
+                        <tr>
+                            <th><label for="xo_dashboard_contact_email">Contact email</label></th>
+                            <td>
+                                <input type="email" id="xo_dashboard_contact_email" name="xo_dashboard_contact_email" value="<?php echo esc_attr($email); ?>" placeholder="team@chickrocksus.com" />
+                                <p class="description"><strong>Lead-notification recipient.</strong> Every catering-lead submission emails this address. Falls back to the WordPress admin email (<?php echo esc_html(get_option('admin_email')); ?>) if blank.</p>
+                            </td>
+                        </tr>
+
+                        <tr>
+                            <th><label for="xo_dashboard_store_address">Address</label></th>
+                            <td>
+                                <input type="text" id="xo_dashboard_store_address" name="xo_dashboard_store_address" value="<?php echo esc_attr($address); ?>" placeholder="00-00 Street Ave, Astoria, NY 11101" />
+                                <p class="description">Footer, contact page, structured-data schema.</p>
+                            </td>
+                        </tr>
+
+                        <tr>
+                            <th><label for="xo_dashboard_hours">Hours</label></th>
+                            <td>
+                                <textarea id="xo_dashboard_hours" name="xo_dashboard_hours" rows="4"><?php echo esc_textarea($hours); ?></textarea>
+                                <p class="description">One line per day, e.g. <code>Mon–Fri: 11am – 10pm</code>. Renders in the footer.</p>
+                            </td>
+                        </tr>
+
+                        <tr>
+                            <th><label for="xo_dashboard_facebook_url">Facebook URL</label></th>
+                            <td><input type="url" id="xo_dashboard_facebook_url" name="xo_dashboard_facebook_url" value="<?php echo esc_attr($facebook_url); ?>" placeholder="https://facebook.com/chickrocks" /></td>
+                        </tr>
+                        <tr>
+                            <th><label for="xo_dashboard_instagram_url">Instagram URL</label></th>
+                            <td><input type="url" id="xo_dashboard_instagram_url" name="xo_dashboard_instagram_url" value="<?php echo esc_attr($instagram_url); ?>" placeholder="https://instagram.com/chickrocks" /></td>
+                        </tr>
+                        <tr>
+                            <th><label for="xo_dashboard_linkedin_url">LinkedIn URL</label></th>
+                            <td><input type="url" id="xo_dashboard_linkedin_url" name="xo_dashboard_linkedin_url" value="<?php echo esc_attr($linkedin_url); ?>" placeholder="https://linkedin.com/company/chickrocks" /></td>
+                        </tr>
+                        <tr>
+                            <th><label for="xo_dashboard_tiktok_url">TikTok URL</label></th>
+                            <td><input type="url" id="xo_dashboard_tiktok_url" name="xo_dashboard_tiktok_url" value="<?php echo esc_attr($tiktok_url); ?>" placeholder="https://tiktok.com/@chickrocks" /></td>
+                        </tr>
+
+                        <tr>
+                            <th><label for="xo_dashboard_manager">Manager / Contact</label></th>
+                            <td>
+                                <input type="text" id="xo_dashboard_manager" name="xo_dashboard_manager" value="<?php echo esc_attr($manager); ?>" />
+                                <p class="description">"Ask for <strong><?php echo esc_html($manager ?: 'name'); ?></strong>" type lines.</p>
+                            </td>
+                        </tr>
+
+                        <tr>
+                            <th><label for="xo_dashboard_header_cta">Header CTA label</label></th>
+                            <td>
+                                <input type="text" id="xo_dashboard_header_cta" name="xo_dashboard_header_cta" value="<?php echo esc_attr($header_cta); ?>" placeholder="Order Online" />
+                                <p class="description">The primary button in the header. Default: <code>Order Online</code>.</p>
+                            </td>
+                        </tr>
+                    </table>
+
+                    <?php submit_button('Save Fine-Tune Details'); ?>
+                </form>
+            </div>
+
+            <!-- ─────────────────────────────────────────────────────────── -->
+            <!-- Section 2: Refresh Text Content (Keep Images)              -->
+            <!-- ─────────────────────────────────────────────────────────── -->
+            <div class="xo-section">
+                <h2><span class="dashicons dashicons-update"></span>Refresh Text Content (Keep Images)</h2>
+                <p>Wipes every page-level text override and restores the original copy that ships with the React frontend. <strong>Image replacements survive.</strong> Use this when a client made a mistake editing copy and wants to revert without losing media work.</p>
+                <div class="xo-warning">This deletes every non-image, non-system page meta row. There is no undo.</div>
+                <a href="<?php echo esc_url(wp_nonce_url(admin_url('admin.php?page=xo-dashboard-settings&action=refresh_text_content'), 'xo_dashboard_refresh_text_content')); ?>"
+                   class="xo-btn"
+                   onclick="return confirm('Wipe every text edit across every page? Image replacements will be kept.');">Refresh Text Content</a>
+            </div>
+
+            <!-- ─────────────────────────────────────────────────────────── -->
+            <!-- Section 3: Promote Edited Images as Defaults               -->
+            <!-- ─────────────────────────────────────────────────────────── -->
+            <div class="xo-section">
+                <h2><span class="dashicons dashicons-images-alt2"></span>Promote Edited Images as Defaults</h2>
+                <p>After replacing images across many pages, click this to copy the latest image overrides into the global default options. First-load visitors will see the new images without needing to wait for a per-route fallback to resolve.</p>
+                <a href="<?php echo esc_url(admin_url('admin.php?page=xo-dashboard-settings&action=promote_image_defaults')); ?>"
+                   class="xo-btn xo-btn-secondary"
+                   onclick="return confirm('Promote the most recent image edits as the new defaults?');">Promote Image Defaults</a>
+            </div>
+
+            <!-- ─────────────────────────────────────────────────────────── -->
+            <!-- Section 4: Sitemap                                          -->
+            <!-- ─────────────────────────────────────────────────────────── -->
+            <div class="xo-section">
+                <h2><span class="dashicons dashicons-networking"></span>Sitemap</h2>
+                <p>Public sitemap URL:</p>
+                <div class="xo-url-box"><a href="<?php echo esc_url($sitemap_url); ?>" target="_blank" rel="noopener"><?php echo esc_html($sitemap_url); ?></a></div>
+                <p style="font-size:12px;color:#666;">
+                    Physical files in webroot:
+                    <code>sitemap.xml</code> <?php echo $physical_sm ? '<strong style="color:#1e8e3e;">✓ present</strong>' : '<strong style="color:#b32d2e;">✗ missing</strong>'; ?>
+                    &nbsp;|&nbsp;
+                    <code>robots.txt</code> <?php echo $physical_rb ? '<strong style="color:#1e8e3e;">✓ present</strong>' : '<strong style="color:#b32d2e;">✗ missing</strong>'; ?>
+                </p>
+                <a href="<?php echo esc_url(admin_url('admin.php?page=xo-dashboard-settings&action=flush_rewrite')); ?>" class="xo-btn">Configure / Refresh Sitemap</a>
+            </div>
+
+            <!-- ─────────────────────────────────────────────────────────── -->
+            <!-- Section 5: SE Ranking Optimization                          -->
+            <!-- ─────────────────────────────────────────────────────────── -->
+            <div class="xo-section">
+                <h2><span class="dashicons dashicons-chart-line"></span>SE Ranking Optimization</h2>
+                <p>Scan the site for redirect chains, oversized images, broken external links, and missing pages — then apply the fixes in one click.</p>
+                <?php
+                $seo_scan_route = rest_url('xo-dashboard/v1/seo-scan');
+                $seo_fix_route  = rest_url('xo-dashboard/v1/seo-fix');
+                $seo_installed  = function_exists('xo_dashboard_seo_scan_handler');
+                ?>
+                <?php if (!$seo_installed): ?>
+                    <div class="xo-info">SE Ranking REST routes aren't installed yet. Run the <code>se-ranking-audit-mike-jin</code> skill to wire up the scan/fix endpoints — the buttons will work as soon as those routes exist.</div>
+                <?php endif; ?>
+                <button type="button" class="xo-btn" id="xo-seo-scan-btn">Scan Site for SEO Issues</button>
+                <div id="xo-seo-scan-output" style="margin-top:12px;font-size:13px;"></div>
+
+                <script>
+                jQuery(function($) {
+                    var nonce = '<?php echo wp_create_nonce('wp_rest'); ?>';
+                    $('#xo-seo-scan-btn').on('click', function() {
+                        var $out = $('#xo-seo-scan-output');
+                        $out.html('<em>Scanning… this can take 30–90 seconds.</em>');
+                        $.ajax({
+                            url: '<?php echo esc_url_raw($seo_scan_route); ?>',
+                            method: 'POST',
+                            beforeSend: function(xhr) { xhr.setRequestHeader('X-WP-Nonce', nonce); }
+                        })
+                        .done(function(r) {
+                            if (!r || typeof r !== 'object') { $out.html('<p style="color:#b32d2e;">Empty response.</p>'); return; }
+                            var issues = r.issues || 0;
+                            if (issues === 0) {
+                                $out.html('<p style="color:#1e8e3e;font-weight:600;">✓ No issues found.</p>');
+                                return;
+                            }
+                            var html = '<p>Found <strong>' + issues + '</strong> issues.</p>';
+                            html += '<button type="button" class="xo-btn xo-btn-secondary" id="xo-seo-fix-btn" style="margin-top:6px;">Apply All Fixes</button>';
+                            $out.html(html);
+                            $('#xo-seo-fix-btn').on('click', function() {
+                                $out.html('<em>Applying fixes…</em>');
+                                $.ajax({
+                                    url: '<?php echo esc_url_raw($seo_fix_route); ?>',
+                                    method: 'POST',
+                                    beforeSend: function(xhr) { xhr.setRequestHeader('X-WP-Nonce', nonce); }
+                                }).done(function(r2) {
+                                    $out.html('<p style="color:#1e8e3e;">' + (r2 && r2.message ? r2.message : 'Fixes applied.') + '</p>');
+                                }).fail(function(x) {
+                                    $out.html('<p style="color:#b32d2e;">Fix request failed (' + x.status + '). Is the SE Ranking skill installed?</p>');
+                                });
+                            });
+                        })
+                        .fail(function(x) {
+                            if (x.status === 404) {
+                                $out.html('<p style="color:#b32d2e;">SE Ranking scan endpoint not found (404). Install the <code>se-ranking-audit-mike-jin</code> skill to enable this.</p>');
+                            } else {
+                                $out.html('<p style="color:#b32d2e;">Scan failed (status ' + x.status + ').</p>');
+                            }
+                        });
+                    });
+                });
+                </script>
+            </div>
+
+            <!-- ─────────────────────────────────────────────────────────── -->
+            <!-- Section 6: Sync to Yoast SEO                                -->
+            <!-- ─────────────────────────────────────────────────────────── -->
+            <div class="xo-section">
+                <h2><span class="dashicons dashicons-yes-alt"></span>Sync to Yoast SEO</h2>
+                <?php if (!$yoast_loaded): ?>
+                    <div class="xo-warning">Yoast SEO plugin isn't activated on this WordPress install. Install + activate it first, then re-run the <code>yoast-sync-for-wp-spa</code> skill.</div>
+                <?php elseif (!function_exists('<THEME_SLUG_FN>_yoast_sync_all')): ?>
+                    <div class="xo-info">Yoast is active, but the sync engine for this SPA hasn't been generated yet. Run the <code>yoast-sync-for-wp-spa</code> skill to wire up these three buttons. They'll start writing Yoast meta + sideloading hero images as soon as that skill installs the engine.</div>
+                <?php endif; ?>
+                <p>Writes per-page Yoast meta (title, description, focus keyphrase, OG/Twitter, featured image) plus a synthetic ~400-word body that scores Yoast green — without affecting the public-facing React frontend.</p>
+                <?php $engine_ready = function_exists('<THEME_SLUG_FN>_yoast_sync_all'); ?>
+                <a href="<?php echo esc_url(wp_nonce_url(admin_url('admin.php?page=xo-dashboard-settings&action=yoast_sync_preview'), 'xo_dashboard_yoast_sync', '_xo_yoast_nonce')); ?>"
+                   class="xo-btn<?php echo $engine_ready ? '' : ' xo-btn-disabled'; ?>">Preview Sync</a>
+                <a href="<?php echo esc_url(wp_nonce_url(admin_url('admin.php?page=xo-dashboard-settings&action=yoast_sync_apply'), 'xo_dashboard_yoast_sync', '_xo_yoast_nonce')); ?>"
+                   class="xo-btn<?php echo $engine_ready ? '' : ' xo-btn-disabled'; ?>">Sync Now (Full)</a>
+                <a href="<?php echo esc_url(wp_nonce_url(admin_url('admin.php?page=xo-dashboard-settings&action=yoast_sync_clear'), 'xo_dashboard_yoast_sync', '_xo_yoast_nonce')); ?>"
+                   class="xo-btn xo-btn-secondary<?php echo $engine_ready ? '' : ' xo-btn-disabled'; ?>"
+                   onclick="return confirm('Clear ALL Yoast meta on every page? This will reset every Yoast dot to red.');">Clear Yoast Data</a>
+            </div>
+
+            <!-- ─────────────────────────────────────────────────────────── -->
+            <!-- Section 7: Master Reset (Danger Zone)                       -->
+            <!-- ─────────────────────────────────────────────────────────── -->
+            <div class="xo-section xo-full" style="border-color:#b32d2e;">
+                <h2 style="color:#b32d2e;"><span class="dashicons dashicons-warning" style="color:#b32d2e;"></span>Master Reset (Danger Zone)</h2>
+                <div class="xo-danger">
+                    <strong>Nuclear option.</strong> Wipes every non-system row in <code>wp_postmeta</code> <em>for pages only</em> — both text and image overrides. The site falls back to the bundled React code defaults.
+                    <br><br>
+                    <strong>Survives:</strong> Yoast meta (<code>_yoast_wpseo_*</code>), Featured Image links, Media Library attachments, <strong>customer Leads</strong>, blog post content + metadata.
+                    <br>
+                    <strong>Gets wiped:</strong> every page-level edit a client has made — every text override, every image override, every inline-edit draft. There is no undo.
+                </div>
+                <a href="<?php echo esc_url(admin_url('admin.php?page=xo-dashboard-settings&action=master_reset')); ?>"
+                   class="xo-btn xo-btn-danger"
+                   onclick="return confirm('This will WIPE every page edit across the entire site. You cannot undo this. Continue?');">Reset All Site Content</a>
+            </div>
+
+        </div>
+    </div>
+
+    <script>
+    jQuery(document).ready(function($) {
+        var mediaUploader;
+        $('#xo_upload_logo_button').on('click', function(e) {
+            e.preventDefault();
+            if (mediaUploader) { mediaUploader.open(); return; }
+            mediaUploader = wp.media({
+                title: 'Upload Business Logo',
+                button: { text: 'Use this logo' },
+                multiple: false,
+                library: { type: 'image' }
+            });
+            mediaUploader.on('select', function() {
+                var attachment = mediaUploader.state().get('selection').first().toJSON();
+                $('#xo_dashboard_logo').val(attachment.url);
+                $('#xo_logo_preview_img').attr('src', attachment.url).show();
+            });
+            mediaUploader.open();
+        });
+
+        $('#xo_remove_logo_button').on('click', function(e) {
+            e.preventDefault();
+            $('#xo_dashboard_logo').val('');
+            $('#xo_logo_preview_img').attr('src', '').hide();
+        });
+    });
+    </script>
+    <?php
+}
+
+/* 8. NEW-LEADS BADGE on the Leads menu */
+
+function <THEME_SLUG_FN>_count_new_leads() {
+    $q = new WP_Query(array(
+        'post_type'      => 'catering_lead',
+        'post_status'    => 'publish',
+        'posts_per_page' => 1,
+        'fields'         => 'ids',
+        'no_found_rows'  => false,
+        'meta_query'     => array(
+            array(
+                'key'     => 'lead_status',
+                'value'   => 'new',
+                'compare' => '=',
+            ),
+        ),
+    ));
+    return (int) $q->found_posts;
+}
+
+add_action('admin_menu', function () {
+    global $menu;
+    if (!is_array($menu)) return;
+    $count = <THEME_SLUG_FN>_count_new_leads();
+    if ($count <= 0) return;
+    foreach ($menu as $key => $item) {
+        if (!isset($item[2])) continue;
+        if ($item[2] === 'edit.php?post_type=catering_lead') {
+            $menu[$key][0] = sprintf(
+                '%s <span class="awaiting-mod"><span class="pending-count">%d</span></span>',
+                esc_html(strip_tags((string) $item[0])),
+                $count
+            );
+            break;
+        }
+    }
+}, 999);
+
+/* 9. LEADS PDF EXPORT — jsPDF enqueue + AJAX endpoint + per-row button. */
+
+add_action('admin_enqueue_scripts', function ($hook) {
+    if ($hook !== 'edit.php') return;
+    $post_type = sanitize_key($_GET['post_type'] ?? 'post');
+    if ($post_type !== 'catering_lead') return;
+
+    wp_enqueue_script('jspdf', 'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js', array(), '2.5.1', true);
+    wp_register_script('<THEME_SLUG_FN>-lead-pdf', '', array('jquery', 'jspdf'), '1.0.0', true);
+    wp_enqueue_script('<THEME_SLUG_FN>-lead-pdf');
+
+    wp_localize_script('<THEME_SLUG_FN>-lead-pdf', 'XODashboardLeadPdf', array(
+        'ajaxUrl'  => admin_url('admin-ajax.php'),
+        'nonce'    => wp_create_nonce('<THEME_SLUG_FN>_lead_pdf_nonce'),
+        'siteName' => get_bloginfo('name'),
+    ));
+
+    wp_add_inline_script('<THEME_SLUG_FN>-lead-pdf', <THEME_SLUG_FN>_lead_pdf_inline_js());
+});
+
+function <THEME_SLUG_FN>_lead_pdf_inline_js() {
+    return <<<JS
+jQuery(function($) {
+    function drawHeader(doc, d) {
+        doc.setFillColor(212, 160, 23); // X.O. gold
+        doc.rect(0, 0, 595, 80, 'F');
+        doc.setTextColor(255, 255, 255);
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(20);
+        doc.text(d.businessName || d.siteName || 'Catering Lead', 40, 38);
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(11);
+        doc.text('Catering Lead Detail Report', 40, 60);
+        doc.setTextColor(40, 40, 40);
+    }
+    function drawField(doc, y, label, value) {
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(10);
+        doc.setTextColor(110, 110, 110);
+        doc.text(String(label).toUpperCase(), 40, y);
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(12);
+        doc.setTextColor(20, 20, 20);
+        var v = value == null || value === '' ? '—' : String(value);
+        var lines = doc.splitTextToSize(v, 515);
+        doc.text(lines, 40, y + 16);
+        return y + 16 + lines.length * 14 + 10;
+    }
+    function drawFooter(doc, d) {
+        var h = doc.internal.pageSize.getHeight();
+        doc.setDrawColor(220, 220, 220);
+        doc.line(40, h - 50, 555, h - 50);
+        doc.setFontSize(9);
+        doc.setTextColor(120, 120, 120);
+        doc.text('Lead #' + d.id + ' · Generated ' + new Date().toLocaleString(), 40, h - 32);
+        if (d.storePhone || d.storeEmail) {
+            doc.text((d.storePhone || '') + (d.storePhone && d.storeEmail ? ' · ' : '') + (d.storeEmail || ''), 40, h - 18);
+        }
+    }
+
+    \$(document).on('click', '.xo-download-lead-pdf', function() {
+        var \$btn = \$(this);
+        var leadId = \$btn.data('lead-id');
+        if (!leadId) return;
+        \$btn.prop('disabled', true).text('Generating…');
+
+        \$.post(XODashboardLeadPdf.ajaxUrl, {
+            action: '<THEME_SLUG_FN>_get_lead_for_pdf',
+            nonce:  XODashboardLeadPdf.nonce,
+            lead_id: leadId,
+        }).done(function(r) {
+            if (!r || !r.success) {
+                alert('Could not load lead data: ' + ((r && r.data && r.data.message) || 'unknown error'));
+                \$btn.prop('disabled', false).text('Download PDF');
+                return;
+            }
+            var d = r.data;
+            d.siteName = XODashboardLeadPdf.siteName;
+            var doc = new jspdf.jsPDF({ unit: 'pt', format: 'a4' });
+            drawHeader(doc, d);
+            var y = 110;
+            y = drawField(doc, y, 'Name',         (d.firstName || '') + ' ' + (d.lastName || ''));
+            y = drawField(doc, y, 'Email',        d.email);
+            y = drawField(doc, y, 'Phone',        d.phone);
+            y = drawField(doc, y, 'Party Size',   d.partySize);
+            y = drawField(doc, y, 'Event Date',   d.eventDate);
+            y = drawField(doc, y, 'Address',      d.address);
+            y = drawField(doc, y, 'Submitted',    d.date);
+            y = drawField(doc, y, 'Notification', d.notificationSent === 'yes' ? 'Sent to ' + (d.notificationTo || '') : 'Not sent');
+            y = drawField(doc, y, 'Status',       d.status || 'new');
+            drawFooter(doc, d);
+            var safeName = ((d.firstName || 'lead') + '-' + (d.lastName || leadId)).toLowerCase().replace(/[^a-z0-9-]+/g, '-');
+            doc.save('lead-' + safeName + '-' + leadId + '.pdf');
+            \$btn.prop('disabled', false).text('Download PDF');
+        }).fail(function(x) {
+            alert('PDF request failed (' + x.status + ').');
+            \$btn.prop('disabled', false).text('Download PDF');
+        });
+    });
+});
+JS;
+}
+
+add_action('wp_ajax_<THEME_SLUG_FN>_get_lead_for_pdf', function () {
+    if (!current_user_can('edit_posts')) {
+        wp_send_json_error(array('message' => 'Unauthorized'), 403);
+    }
+    check_ajax_referer('<THEME_SLUG_FN>_lead_pdf_nonce', 'nonce');
+
+    $lead_id = isset($_POST['lead_id']) ? (int) $_POST['lead_id'] : 0;
+    $lead = get_post($lead_id);
+    if (!$lead || $lead->post_type !== 'catering_lead') {
+        wp_send_json_error(array('message' => 'Lead not found'), 404);
+    }
+
+    wp_send_json_success(array(
+        'id'               => $lead_id,
+        'firstName'        => get_post_meta($lead_id, 'lead_first_name', true),
+        'lastName'         => get_post_meta($lead_id, 'lead_last_name', true),
+        'email'            => get_post_meta($lead_id, 'lead_email', true),
+        'phone'            => get_post_meta($lead_id, 'lead_phone', true),
+        'partySize'        => get_post_meta($lead_id, 'lead_party_size', true),
+        'eventDate'        => get_post_meta($lead_id, 'lead_event_date', true),
+        'address'          => get_post_meta($lead_id, 'lead_address', true),
+        'status'           => get_post_meta($lead_id, 'lead_status', true) ?: 'new',
+        'notificationSent' => get_post_meta($lead_id, 'lead_notification_sent', true),
+        'notificationTo'   => get_post_meta($lead_id, 'lead_notification_to', true),
+        'date'             => get_the_date('Y-m-d H:i', $lead_id),
+        'businessName'     => (string) get_option('xo_dashboard_business_name', get_bloginfo('name')),
+        'storeEmail'       => function_exists('<THEME_SLUG_FN>_get_contact_email') ? <THEME_SLUG_FN>_get_contact_email() : '',
+        'storePhone'       => (string) get_option('xo_dashboard_store_phone', ''),
+        'storeAddress'     => (string) get_option('xo_dashboard_store_address', ''),
+    ));
 });

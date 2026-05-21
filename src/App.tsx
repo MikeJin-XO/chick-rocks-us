@@ -5,6 +5,7 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { EditProvider } from "@/contexts/EditContext";
+import { OrderModalProvider } from "@/contexts/OrderModalContext";
 import { EditToolbar } from "@/components/layout/EditToolbar";
 import Index from "./pages/Index.tsx";
 import NotFound from "./pages/NotFound.tsx";
@@ -41,19 +42,21 @@ const App = () => (
       <BrowserRouter basename={routerBasename}>
         <ScrollToTop />
         <EditProvider>
-          <Routes>
-            <Route path="/" element={<Index />} />
-            <Route path="/menu" element={<Menu />} />
-            <Route path="/catering" element={<Catering />} />
-            <Route path="/blog" element={<Blog />} />
-            <Route path="/blog/:slug" element={<BlogPost />} />
-            <Route path="/about" element={<About />} />
-            <Route path="/faq" element={<Faq />} />
-            <Route path="/privacy" element={<PrivacyPolicy />} />
-            <Route path="/terms" element={<TermsOfUse />} />
-            <Route path="*" element={<NotFound />} />
-          </Routes>
-          <EditToolbar />
+          <OrderModalProvider>
+            <Routes>
+              <Route path="/" element={<Index />} />
+              <Route path="/menu" element={<Menu />} />
+              <Route path="/catering" element={<Catering />} />
+              <Route path="/blog" element={<Blog />} />
+              <Route path="/blog/:slug" element={<BlogPost />} />
+              <Route path="/about" element={<About />} />
+              <Route path="/faq" element={<Faq />} />
+              <Route path="/privacy" element={<PrivacyPolicy />} />
+              <Route path="/terms" element={<TermsOfUse />} />
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+            <EditToolbar />
+          </OrderModalProvider>
         </EditProvider>
       </BrowserRouter>
     </TooltipProvider>

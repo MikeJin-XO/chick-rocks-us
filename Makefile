@@ -1,15 +1,16 @@
 # Chick Rocks deploy Makefile.
-# Live site: WordPress on SiteGround at https://jeffl224.sg-host.com.
+# Live site: WordPress on SiteGround at https://chickrocksus.com.
 # Theme is built from this React/Vite app and rsync'd into the chick-rocks/ theme dir.
 
 SHELL := /bin/bash
 
 # --- SiteGround SSH connection ---
-SG_HOST       := ssh.jeffl224.sg-host.com
+SG_HOST       := c1114776.sgvps.net
 SG_USER       := u81-pwpukol4fyt4
 SG_PORT       := 18765
 SG_KEY        := $(HOME)/.ssh/id_ed25519
-SG_THEME_PATH := www/jeffl224.sg-host.com/public_html/wp-content/themes/chick-rocks
+SG_THEME_PATH := www/chickrocksus.com/public_html/wp-content/themes/chick-rocks
+SG_WP_ROOT    := www/chickrocksus.com/public_html
 
 SSH_OPTS  := -p $(SG_PORT) -i $(SG_KEY) -o IdentitiesOnly=yes
 SSH_CMD   := ssh $(SSH_OPTS) $(SG_USER)@$(SG_HOST)
@@ -17,7 +18,7 @@ RSYNC_SSH := ssh $(SSH_OPTS)
 
 LOCAL_THEME_DIR := wordpress-theme
 
-.PHONY: help prod build backup deploy deploy-clean ssh push pull-backup
+.PHONY: help prod build backup deploy deploy-clean ssh push pull-backup fix-maintenance
 
 help:
 	@echo "Targets:"
@@ -29,10 +30,11 @@ help:
 	@echo "  make ssh           Open an interactive SSH shell on SiteGround"
 	@echo "  make push          git push origin main"
 	@echo "  make pull-backup   Download newest backup tarball to ./backups/"
+	@echo "  make fix-maintenance  Remove stuck .maintenance file from WP root"
 
 prod: build backup deploy
 	@echo ""
-	@echo "Deployed to https://jeffl224.sg-host.com"
+	@echo "Deployed to https://chickrocksus.com"
 
 build:
 	npm run build:wordpress
@@ -69,3 +71,7 @@ pull-backup:
 		echo "Pulling $$latest"; \
 		rsync -avz --human-readable -e "$(RSYNC_SSH)" \
 			$(SG_USER)@$(SG_HOST):"$$latest" backups/
+
+fix-maintenance:
+	@echo "→ Checking for stuck .maintenance file on live site…"
+	$(SSH_CMD) 'cd ~/$(SG_WP_ROOT) && if [ -f .maintenance ]; then ls -l .maintenance && rm -f .maintenance && echo "✅ Removed .maintenance"; else echo "No .maintenance file present."; fi'

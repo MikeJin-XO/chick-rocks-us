@@ -75,7 +75,7 @@ const siteOrganizationLd = {
   acceptsReservations: false,
   hasMenu: `${SITE_URL}/menu`,
   sameAs: [
-    "https://www.instagram.com/chickrocks_usa/",
+    "https://www.instagram.com/chickrocksus/",
     "https://www.facebook.com/chickrocks2022/",
     "https://www.tiktok.com/@chickrockinc",
   ],

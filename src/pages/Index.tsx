@@ -5,6 +5,7 @@ import CrowdFavorites from "@/components/CrowdFavorites";
 import FeaturedMeals from "@/components/FeaturedMeals";
 import AboutSection from "@/components/AboutSection";
 import CateringCta from "@/components/CateringCta";
+import HomeFaq, { homeFaqItems } from "@/components/HomeFaq";
 import Footer from "@/components/Footer";
 import Seo, { SITE } from "@/components/Seo";
 
@@ -29,16 +30,26 @@ const homeLd = {
   acceptsReservations: false,
 };
 
+const homeFaqLd = {
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  mainEntity: homeFaqItems.map((f) => ({
+    "@type": "Question",
+    name: f.q,
+    acceptedAnswer: { "@type": "Answer", text: f.a },
+  })),
+};
+
 const Index = () => {
   return (
     <div className="min-h-screen bg-background">
       <Seo
-        title="Chick Rocks — Halal Fried Chicken in Astoria, NY"
+        title="Chick Rocks — Halal Fried Chicken in Astoria & Flushing, NY"
         description="Crispy halal fried chicken, signature sandwiches, wings, rice bowls and spaghetti combos in Astoria & Flushing, Queens. Dine in, takeout and delivery — order now."
         path="/"
         keywords="halal fried chicken astoria, halal fried chicken nyc, halal fried chicken queens, chick rocks, halal chicken sandwich, halal wings astoria"
         type="restaurant"
-        jsonLd={homeLd}
+        jsonLd={[homeLd, homeFaqLd]}
       />
       <Navbar />
       <HeroSection />
@@ -47,6 +58,7 @@ const Index = () => {
       <FeaturedMeals />
       <CrowdFavorites />
       <AboutSection />
+      <HomeFaq />
       <Footer />
     </div>
   );

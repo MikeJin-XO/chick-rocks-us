@@ -6,38 +6,38 @@ import { MediaEdit } from "@/components/ui/media-edit";
 const FeaturedMeals = () => {
   const { isEditing, getDraftValue, updateDraft } = useEdit();
   const base = import.meta.env.BASE_URL;
-  const defaultImg = `${base}chicken-1.webp`;
+  const defaultImg = `${base}uploads/2026/05/ChatGPT-Image-May-8-2026-04_25_39-PM.png`;
 
   return (
-    <section className="py-24 bg-card">
+    <section className="py-12 sm:py-16 md:py-24 bg-card">
       <div className="container mx-auto px-4">
-        <div className="grid md:grid-cols-2 gap-8 lg:gap-12 items-center min-h-[600px]">
-          <div className="max-w-2xl space-y-6 order-2 md:justify-self-start md:pl-4">
+        <div className="grid md:grid-cols-2 gap-6 sm:gap-8 lg:gap-12 items-center md:min-h-[600px]">
+          <div className="max-w-2xl space-y-4 sm:space-y-5 md:space-y-6 order-2 md:justify-self-start md:pl-4">
             <InlineEdit
               id="catering_eyebrow"
               as="p"
-              className="text-accent font-bold uppercase tracking-wide text-sm block"
+              className="text-accent font-bold uppercase tracking-wide text-xs sm:text-sm block"
               isEditing={isEditing}
-              value={getDraftValue("catering_eyebrow", "Seasoned East, Fried West")}
+              value={getDraftValue("catering_eyebrow", "Halal Food in Queens")}
               onChange={(v) => updateDraft("catering_eyebrow", v)}
             />
             <InlineEdit
               id="catering_heading"
               as="h2"
-              className="text-4xl md:text-5xl font-heading uppercase leading-tight text-foreground block"
+              className="text-3xl sm:text-4xl md:text-5xl font-heading uppercase leading-tight text-foreground block text-balance"
               isEditing={isEditing}
-              value={getDraftValue("catering_heading", "Halal Chicken with Asian Flavor")}
+              value={getDraftValue("catering_heading", "All-Halal Menu With Asian Flavor")}
               onChange={(v) => updateDraft("catering_heading", v)}
             />
             <InlineEdit
               id="catering_body_1"
               as="p"
-              className="text-muted-foreground leading-relaxed block"
+              className="text-sm sm:text-base text-muted-foreground leading-relaxed block text-pretty"
               isEditing={isEditing}
               multiline
               value={getDraftValue(
                 "catering_body_1",
-                "At Chick Rocks, we serve crispy halal fried chicken with bold Southern-style crunch and Asian-American flavor inspired by Queens. From spicy chicken sandwiches and wings to rice bowls, pasta, and bubble tea, our menu is made to satisfy every craving."
+                "At Chick Rocks, we serve halal fried chicken, spicy chicken sandwiches, wings, rice bowls, spaghetti, and bubble tea with bold Asian-American flavor. Visit us in Astoria or Flushing for crispy halal comfort food made fresh for every craving."
               )}
               onChange={(v) => updateDraft("catering_body_1", v)}
             />

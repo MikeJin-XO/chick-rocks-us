@@ -6,12 +6,12 @@ import { MediaEdit } from "@/components/ui/media-edit";
 const CateringCta = () => {
   const { isEditing, getDraftValue, updateDraft } = useEdit();
   const base = import.meta.env.BASE_URL;
-  const defaultImg = `${base}catering-2.avif`;
+  const defaultImg = `${base}uploads/2026/05/Share-Food-Chickrocks-USA-scaled.jpg`;
 
   return (
-    <section className="py-24 bg-cream">
+    <section className="py-12 sm:py-16 md:py-24 bg-cream">
       <div className="container mx-auto px-4">
-        <div className="grid md:grid-cols-2 gap-8 lg:gap-12 items-center min-h-[600px]">
+        <div className="grid md:grid-cols-2 gap-6 sm:gap-8 lg:gap-12 items-center md:min-h-[600px]">
           <MediaEdit
             id="home_catering_img"
             isEditing={isEditing}
@@ -27,32 +27,32 @@ const CateringCta = () => {
             />
           </MediaEdit>
 
-          <div className="max-w-2xl space-y-6 order-2 md:order-1 md:justify-self-end md:pr-4">
+          <div className="max-w-2xl space-y-4 sm:space-y-5 md:space-y-6 order-2 md:order-1 md:justify-self-end md:pr-4">
             <InlineEdit
               id="home_catering_eyebrow"
               as="p"
-              className="text-accent font-bold uppercase tracking-wide text-sm block"
+              className="text-accent font-bold uppercase tracking-wide text-xs sm:text-sm block"
               isEditing={isEditing}
-              value={getDraftValue("home_catering_eyebrow", "Cater With Us")}
+              value={getDraftValue("home_catering_eyebrow", "Cater With Chick Rocks")}
               onChange={(v) => updateDraft("home_catering_eyebrow", v)}
             />
             <InlineEdit
               id="home_catering_heading"
               as="h2"
-              className="text-4xl md:text-5xl font-heading uppercase leading-tight text-foreground block"
+              className="text-3xl sm:text-4xl md:text-5xl font-heading uppercase leading-tight text-foreground block text-balance"
               isEditing={isEditing}
-              value={getDraftValue("home_catering_heading", "Feed The Whole Crew")}
+              value={getDraftValue("home_catering_heading", "Halal Catering for Every Crew")}
               onChange={(v) => updateDraft("home_catering_heading", v)}
             />
             <InlineEdit
               id="home_catering_body"
               as="p"
-              className="text-muted-foreground leading-relaxed block"
+              className="text-sm sm:text-base text-muted-foreground leading-relaxed block text-pretty"
               isEditing={isEditing}
               multiline
               value={getDraftValue(
                 "home_catering_body",
-                "From office lunches and school events to birthday parties and family gatherings, Chick Rocks catering brings halal fried chicken, sandwiches, rice bowls, and sides to your table in Flushing and Astoria."
+                "Make your next event easy with Chick Rocks halal chicken catering in Queens. From crispy fried chicken and sandwiches to rice bowls, sides, and party trays, we help feed office lunches, school events, birthdays, and family gatherings in Astoria and Flushing."
               )}
               onChange={(v) => updateDraft("home_catering_body", v)}
             />

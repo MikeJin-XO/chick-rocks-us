@@ -26,3 +26,7 @@ wordpress-theme-upload
 *.njsproj
 *.sln
 *.sw?
+
+# Local dev artifacts
+.claude/
+live-snapshot/

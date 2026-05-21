@@ -4,6 +4,7 @@ import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import Seo, { breadcrumbLd } from "@/components/Seo";
 import { useEdit } from "@/contexts/EditContext";
+import { useOrderModal } from "@/contexts/OrderModalContext";
 import { InlineEdit } from "@/components/ui/inline-edit";
 import { MediaEdit } from "@/components/ui/media-edit";
 
@@ -85,6 +86,7 @@ const flatFaqItems = faqSections.flatMap((s) => s.items);
 
 const Faq = () => {
   const { isEditing, getDraftValue, updateDraft } = useEdit();
+  const { open: openOrderModal } = useOrderModal();
   const base = import.meta.env.BASE_URL;
   const [openItems, setOpenItems] = useState<Set<number>>(new Set());
 
@@ -125,8 +127,16 @@ const Faq = () => {
       />
       <Navbar />
 
-      <section className="bg-primary text-primary-foreground py-12 md:py-16">
-        <div className="container mx-auto px-4 flex flex-col items-center text-center space-y-4">
+      <section className="relative bg-primary text-primary-foreground overflow-hidden">
+        <div
+          aria-hidden
+          className="absolute inset-0 opacity-[0.08] pointer-events-none [background-image:radial-gradient(theme(colors.primary.foreground)_1px,transparent_1px)] [background-size:22px_22px]"
+        />
+        <div
+          aria-hidden
+          className="absolute inset-0 pointer-events-none bg-[radial-gradient(ellipse_at_center,transparent_45%,rgba(0,0,0,0.18)_100%)]"
+        />
+        <div className="relative container mx-auto px-4 py-9 sm:py-11 md:py-14 flex flex-col items-center text-center">
           <MediaEdit
             id="faq_page_hero_logo"
             isEditing={isEditing}
@@ -136,21 +146,35 @@ const Faq = () => {
             <img
               src={getDraftValue("faq_page_hero_logo", `${base}logo.webp`)}
               alt="Chick Rocks halal fried chicken logo"
-              className="h-20 md:h-24 w-auto brightness-0 invert"
+              className="h-12 sm:h-14 md:h-16 w-auto brightness-0 invert"
             />
           </MediaEdit>
+
+          <div className="mt-4 sm:mt-5 flex items-center gap-3 sm:gap-4 text-[10px] sm:text-[11px] font-bold uppercase tracking-[0.32em] opacity-80">
+            <span aria-hidden className="h-px w-8 sm:w-10 bg-primary-foreground/60" />
+            <span>Help · Answers</span>
+            <span aria-hidden className="h-px w-8 sm:w-10 bg-primary-foreground/60" />
+          </div>
+
           <InlineEdit
             id="faq_page_title"
             as="h1"
-            className="text-4xl md:text-5xl font-heading tracking-wider uppercase block"
+            className="mt-3 sm:mt-4 font-heading uppercase tracking-wide text-balance text-3xl sm:text-4xl md:text-5xl lg:text-[3.5rem] leading-[1] block"
             isEditing={isEditing}
             value={getDraftValue("faq_page_title", "Halal Fried Chicken FAQ")}
             onChange={(v) => updateDraft("faq_page_title", v)}
           />
+
+          <div aria-hidden className="mt-4 sm:mt-5 flex items-center gap-2 opacity-70">
+            <span className="h-px w-8 bg-primary-foreground" />
+            <span className="h-1.5 w-1.5 rounded-full bg-primary-foreground" />
+            <span className="h-px w-8 bg-primary-foreground" />
+          </div>
+
           <InlineEdit
             id="faq_page_hero_subtext"
             as="p"
-            className="text-base md:text-lg opacity-90 max-w-2xl mx-auto block"
+            className="mt-3 sm:mt-4 text-[13px] sm:text-sm md:text-[15px] leading-relaxed opacity-90 max-w-3xl mx-auto block text-pretty"
             isEditing={isEditing}
             multiline
             value={getDraftValue(
@@ -162,14 +186,14 @@ const Faq = () => {
         </div>
       </section>
 
-      <main className="flex-1 container mx-auto px-4 py-16 max-w-3xl">
-        <div className="space-y-14">
+      <main className="flex-1 container mx-auto px-4 py-10 sm:py-12 md:py-16 max-w-3xl">
+        <div className="space-y-10 md:space-y-14">
           {faqSections.map((section, sectionIndex) => (
-            <section key={section.title} className="space-y-8">
+            <section key={section.title} className="space-y-5 sm:space-y-6 md:space-y-8">
               <InlineEdit
                 id={`faq_section_${sectionIndex + 1}_title`}
                 as="h2"
-                className="text-2xl md:text-3xl font-heading uppercase text-foreground tracking-wide block"
+                className="text-2xl sm:text-3xl font-heading uppercase text-foreground tracking-wide block text-balance"
                 isEditing={isEditing}
                 value={getDraftValue(
                   `faq_section_${sectionIndex + 1}_title`,
@@ -191,12 +215,12 @@ const Faq = () => {
                         onClick={() => !isEditing && toggleItem(idx)}
                         aria-expanded={isOpen}
                         aria-controls={`faq_a_panel_${idx}`}
-                        className="w-full flex items-start justify-between gap-6 py-5 text-left hover:text-primary transition-colors"
+                        className="w-full flex items-start justify-between gap-4 sm:gap-6 py-4 sm:py-5 text-left hover:text-primary transition-colors"
                       >
                         <InlineEdit
                           id={`faq_q_${idx}`}
                           as="h3"
-                          className="text-base md:text-lg font-body font-normal text-foreground leading-snug block"
+                          className="text-base md:text-lg font-body font-normal text-foreground leading-snug block text-pretty"
                           isEditing={isEditing}
                           value={getDraftValue(`faq_q_${idx}`, item.q)}
                           onChange={(v) => updateDraft(`faq_q_${idx}`, v)}
@@ -218,7 +242,7 @@ const Faq = () => {
                           <InlineEdit
                             id={`faq_a_${idx}`}
                             as="p"
-                            className="text-base leading-relaxed text-muted-foreground block pb-5 pr-11"
+                            className="text-sm sm:text-base leading-relaxed text-muted-foreground block pb-4 sm:pb-5 pr-8 sm:pr-11 text-pretty"
                             isEditing={isEditing}
                             multiline
                             value={getDraftValue(`faq_a_${idx}`, item.a)}
@@ -234,11 +258,11 @@ const Faq = () => {
           ))}
         </div>
 
-        <section className="mt-16 bg-cream rounded-2xl p-8 text-center space-y-4">
+        <section className="mt-12 sm:mt-14 md:mt-16 bg-cream rounded-2xl p-6 sm:p-8 text-center space-y-3 sm:space-y-4">
           <InlineEdit
             id="faq_bottom_heading"
             as="h2"
-            className="text-2xl md:text-3xl font-heading uppercase text-foreground block"
+            className="text-2xl sm:text-3xl font-heading uppercase text-foreground block text-balance"
             isEditing={isEditing}
             value={getDraftValue("faq_bottom_heading", "Still have a question?")}
             onChange={(v) => updateDraft("faq_bottom_heading", v)}
@@ -246,7 +270,7 @@ const Faq = () => {
           <InlineEdit
             id="faq_bottom_body"
             as="p"
-            className="text-muted-foreground leading-relaxed block"
+            className="text-sm sm:text-base text-muted-foreground leading-relaxed block text-pretty"
             isEditing={isEditing}
             multiline
             value={getDraftValue(
@@ -268,10 +292,9 @@ const Faq = () => {
                 onChange={(v) => updateDraft("faq_bottom_cta_primary", v)}
               />
             </a>
-            <a
-              href="https://pos.chowbus.com/online-ordering/store/chick-rocks/11843"
-              target="_blank"
-              rel="noopener noreferrer"
+            <button
+              type="button"
+              onClick={openOrderModal}
               className="inline-block bg-card border border-border text-foreground px-8 py-3 rounded-full font-bold uppercase tracking-wide hover:border-primary hover:text-primary transition-colors"
             >
               <InlineEdit
@@ -281,7 +304,7 @@ const Faq = () => {
                 value={getDraftValue("faq_bottom_cta_secondary", "Order Online")}
                 onChange={(v) => updateDraft("faq_bottom_cta_secondary", v)}
               />
-            </a>
+            </button>
           </div>
         </section>
       </main>

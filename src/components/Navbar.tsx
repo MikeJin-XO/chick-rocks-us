@@ -2,11 +2,13 @@ import { MapPin, Menu, X } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { useEdit } from "@/contexts/EditContext";
+import { useOrderModal } from "@/contexts/OrderModalContext";
 import { InlineEdit } from "@/components/ui/inline-edit";
 import { MediaEdit } from "@/components/ui/media-edit";
 
 const Navbar = () => {
   const { isEditing, getDraftValue, updateDraft } = useEdit();
+  const { open: openOrderModal } = useOrderModal();
   const base = import.meta.env.BASE_URL;
   const [mobileOpen, setMobileOpen] = useState(false);
   const location = useLocation();
@@ -131,6 +133,13 @@ const Navbar = () => {
                 onChange={(v) => updateDraft("nav_link_faq", v)}
               />
             </Link>
+            <button
+              type="button"
+              onClick={openOrderModal}
+              className="ml-2 inline-flex items-center justify-center bg-primary text-primary-foreground px-5 py-2 rounded-full font-bold uppercase tracking-wide text-xs hover:opacity-90 transition-opacity shadow-sm"
+            >
+              Order Now
+            </button>
           </div>
           <button
             type="button"
@@ -163,6 +172,13 @@ const Navbar = () => {
             <Link to="/faq" className="px-2 py-2 rounded-md text-foreground hover:text-primary hover:bg-muted transition-colors">
               {getDraftValue("nav_link_faq", "FAQ")}
             </Link>
+            <button
+              type="button"
+              onClick={openOrderModal}
+              className="mt-2 inline-flex items-center justify-center bg-primary text-primary-foreground px-4 py-2.5 rounded-full font-bold uppercase tracking-wide text-sm hover:opacity-90 transition-opacity"
+            >
+              Order Now
+            </button>
             <div className="mt-2 pt-2 border-t border-border flex flex-col gap-2 text-muted-foreground">
               <a
                 href="https://pos.chowbus.com/online-ordering/store/chick-rocks/11843"

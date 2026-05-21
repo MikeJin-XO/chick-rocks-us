@@ -20,8 +20,8 @@ const HeroSection = () => {
 
   const slides = useMemo(
     () => [
-      getDraftValue("hero_slide_1_img", `${base}hero-new-1.webp`),
-      getDraftValue("hero_slide_2_img", `${base}hero-new-2.webp`),
+      getDraftValue("hero_slide_1_img", `${base}uploads/2026/05/Chicken-ChickRocks-.jpg`),
+      getDraftValue("hero_slide_2_img", `${base}uploads/2026/05/Hamburger-Chickrocks.jpg`),
     ],
     [getDraftValue, base]
   );
@@ -173,7 +173,7 @@ const HeroSection = () => {
   const slideTransitionClass = animate ? "transition-[transform,opacity] duration-700 ease-out" : "";
 
   return (
-    <section className="bg-cream pb-10 pt-4">
+    <section className="bg-cream pb-4 pt-4">
       <div className="relative w-full overflow-hidden">
         <div
           ref={trackRef}
@@ -188,7 +188,7 @@ const HeroSection = () => {
             const isCenter = i === vIndex;
             const slideIndex = i % slides.length;
             const slideKey = slideIndex === 0 ? "hero_slide_1_img" : "hero_slide_2_img";
-            const defaultSrc = slideIndex === 0 ? `${base}hero-new-1.webp` : `${base}hero-new-2.webp`;
+            const defaultSrc = slideIndex === 0 ? `${base}uploads/2026/05/Chicken-ChickRocks-.jpg` : `${base}uploads/2026/05/Hamburger-Chickrocks.jpg`;
             return (
               <div
                 key={i}
@@ -208,7 +208,7 @@ const HeroSection = () => {
                       src={src}
                       alt="Chick Rocks featured promotion"
                       loading="lazy"
-                      className="block w-full h-auto sm:h-[500px] md:h-[640px] sm:object-contain bg-cream"
+                      className="block w-full h-auto bg-cream"
                     />
                   </MediaEdit>
                 ) : (
@@ -216,7 +216,7 @@ const HeroSection = () => {
                     src={src}
                     alt="Chick Rocks featured promotion"
                     loading="lazy"
-                    className="block w-full h-auto sm:h-[500px] md:h-[640px] sm:object-contain bg-cream"
+                    className="block w-full h-auto bg-cream"
                   />
                 )}
               </div>
@@ -260,6 +260,20 @@ const HeroSection = () => {
             />
           ))}
         </div>
+      </div>
+
+      <div className="container mx-auto px-4 mt-6 max-w-6xl text-center">
+        <InlineEdit
+          id="hero_intro_text"
+          as="p"
+          isEditing={isEditing}
+          value={getDraftValue(
+            "hero_intro_text",
+            "Chick Rocks serves halal food in Queens with crispy fried chicken, wings, chicken sandwiches, rice bowls, spaghetti, drinks, and comfort food favorites. Visit our Astoria and Flushing locations for dine-in, pickup, delivery, catering, and bold halal chicken meals made for every craving."
+          )}
+          onChange={(v) => updateDraft("hero_intro_text", v)}
+          className="text-foreground/80 text-sm sm:text-base leading-relaxed [text-wrap:balance]"
+        />
       </div>
 
       <div className="container mx-auto px-4 mt-6 flex flex-row items-center justify-center gap-3 sm:gap-4">

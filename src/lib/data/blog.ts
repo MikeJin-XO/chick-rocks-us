@@ -9,63 +9,63 @@ export type BlogPost = {
 
 export const DEMO_POSTS: BlogPost[] = [
   {
-    slug: "best-chicken-sandwich-varieties-astoria",
-    title: "Exploring Best Chicken Sandwich Varieties: A Flavorful Journey in Astoria",
-    date: "February 17, 2026",
-    image:
-      "https://static.wixstatic.com/media/f2afd9_23e03541545447eaa9fa12fda40143b1~mv2.jpg/v1/fill/w_740,h_417,al_c,q_80,usm_0.66_1.00_0.01,enc_avif,quality_auto/f2afd9_23e03541545447eaa9fa12fda40143b1~mv2.jpg",
+    slug: "halal-food-queens-ny",
+    title: "Chick Rocks in Queens: A Fresh Take on Halal Comfort Food",
+    date: "May 7, 2026",
+    image: "/uploads/2026/05/Ricebowl-Chickrocks-USA-scaled-e1778179932450.jpg",
     excerpt:
-      "From classic crispy to hot honey to Nashville-style heat — a tour of the chicken sandwich styles shaping Astoria's halal food scene.",
-    body: "<p>Astoria is one of the most exciting food neighborhoods in Queens, and the chicken sandwich has quietly become the centerpiece of that scene. At Chick Rocks we build each sandwich around hand-breaded, halal fried chicken that stays crispy from the first bite to the last.</p><p>In this guide we walk through the chicken sandwich styles you'll see on our menu — classic crispy, hot honey, Nashville heat, and sweet-savory teriyaki — and explain what makes each one distinct.</p>",
+      "Explore Chick Rocks in Queens, New York, for halal comfort food with fresh ingredients and balanced flavors.",
+    body: `<p>Finding a spot that delivers both flavor and convenience can make all the difference when exploring food options in Queens, New York. Chick Rocks has quickly become a favorite for locals looking for satisfying halal meals that are both modern and comforting. With a focus on quality ingredients and bold flavors, Chick Rocks offers a dining experience that customers love.</p>
+<h2 class="wp-block-heading"><strong>What Makes Chick Rocks Stand Out</strong></h2>
+<p>Consistency and flavor are what keep customers coming back. The kitchen focuses on preparing each order fresh, ensuring that every bite delivers the same quality.</p>
+<p>Some highlights include:</p>
+<ul class="wp-block-list"><li>Well-seasoned chicken with a balanced, savory flavor</li><li>Crispy fried options that maintain a light texture</li><li>Fresh sides like coleslaw that add contrast and crunch</li><li>Rice-based bowls that bring everything together</li></ul>
+<h2 class="wp-block-heading"><strong>Built for Quick and Convenient Dining</strong></h2>
+<p>In a fast-paced area like Queens, New York, convenience matters, and that’s exactly what Chick Rocks is built for. We focus on delivering high-quality halal food without the long wait, so you never have to choose between speed and flavor.</p>
+<p>Every order is prepared efficiently without cutting corners, making it easy to grab a fresh, satisfying meal on the go, whether you’re stopping by for a quick bite or picking up takeout on a busy day.</p>
+<p><strong>Balanced Options for Everyday Meals</strong></p>
+<p>Chick Rocks appeals to a wide range of customers, from students and professionals to families looking for reliable halal food options. The menu offers a balance between indulgence and lighter choices, giving customers flexibility depending on their preferences.</p>
+<p>Popular reasons customers choose Chick Rocks include:</p>
+<ul class="wp-block-list"><li>Meals that are filling but not overly heavy</li><li>Flavorful options without overwhelming seasoning</li><li>A clean and modern approach to halal comfort food</li><li>Consistent quality across every visit</li></ul>
+<h2 class="wp-block-heading"><strong>A Local Favorite in Queens</strong></h2>
+<p>As more people discover Chick Rocks, it continues to build a strong reputation for amazing dining experiences within the community. Its combination of flavor, convenience, and quality has made it a dependable option for those searching for halal food in Queens, New York.</p>
+<p>Whether you’re a resident or visiting the area, it’s a place that offers a reliable and enjoyable meal experience.</p>
+<h2 class="wp-block-heading"><strong>Try Chick Rocks Today</strong></h2>
+<p>Good food doesn’t need to be complicated. Chick Rocks keeps it simple: Fresh ingredients, balanced flavors, and efficient service.</p>
+<p>If you’re looking for a satisfying halal meal, Chick Rocks is ready to serve you. Order today or visit to explore the menu and enjoy a fresh take on comfort food in Queens, New York.</p>`,
   },
   {
-    slug: "best-fast-food-nyc-fried-chicken",
-    title: "Discover the Best Fast Food NYC: A Fried Chicken Lover's Dream!",
-    date: "February 17, 2026",
-    image:
-      "https://static.wixstatic.com/media/f2afd9_942a5351d37945588d78c835203ce007~mv2.jpeg/v1/fill/w_514,h_386,fp_0.50_0.50,q_90,enc_avif,quality_auto/f2afd9_942a5351d37945588d78c835203ce007~mv2.jpeg",
+    slug: "halal-pasta-rice-bowls-queens",
+    title: "Halal Pasta and Rice Bowls in Queens: A New Take on Comfort Food",
+    date: "May 6, 2026",
+    image: "/uploads/2026/05/Chicken-Rice-and-Spaghetti-scaled.jpg",
     excerpt:
-      "New York's fried chicken scene is more than a trend — here's why halal-first, hand-breaded fast food is taking over.",
-    body: "<p>When people think about fast food in New York, the conversation usually starts with pizza or bagels. But in the last few years, halal fried chicken has pushed its way into that top tier — and Chick Rocks is part of the reason.</p><p>In this post we break down why halal fast food is growing in NYC, what makes a fried chicken order genuinely great, and where Chick Rocks fits in the map.</p>",
-  },
-  {
-    slug: "nyc-fried-chicken-styles",
-    title: "The Secrets of NYC Fried Chicken Styles",
-    date: "February 16, 2026",
-    image:
-      "https://static.wixstatic.com/media/f2afd9_139a09ffdb4c4a779f57495b292d2e25~mv2.jpeg/v1/fill/w_514,h_386,fp_0.50_0.50,q_90,enc_avif,quality_auto/f2afd9_139a09ffdb4c4a779f57495b292d2e25~mv2.jpeg",
-    excerpt:
-      "Southern-style, Korean double fry, Nashville hot, halal crispy — here's how NYC's fried chicken styles stack up.",
-    body: "<p>Fried chicken in NYC isn't one thing — it's a category. Southern-style crispy, Korean double fry, Nashville hot, and now halal-first hand-breaded are all sharing the same city, and often the same block.</p><p>This post breaks down the technique behind each style and where halal chicken fits into the larger conversation.</p>",
-  },
-  {
-    slug: "top-nyc-fried-chicken-guide",
-    title: "Top NYC Fried Chicken: The Ultimate Guide to NYC's Best Fried Chicken Spots",
-    date: "February 13, 2026",
-    image:
-      "https://static.wixstatic.com/media/f2afd9_e97a912e9cd848d1a23d09a67e326704~mv2.jpeg/v1/fill/w_514,h_386,fp_0.50_0.50,q_90,enc_avif,quality_auto/f2afd9_e97a912e9cd848d1a23d09a67e326704~mv2.jpeg",
-    excerpt:
-      "A neighborhood-by-neighborhood guide to the best fried chicken in NYC — with a spotlight on the halal options rising to the top.",
-    body: "<p>From Astoria to Harlem to the Lower East Side, we walk through the NYC fried chicken spots worth traveling for. We especially call out the halal-friendly options that often get overlooked in mainstream guides.</p>",
-  },
-  {
-    slug: "queens-fried-chicken-spots",
-    title: "Queens Fried Chicken Spots You Can't Miss",
-    date: "February 12, 2026",
-    image:
-      "https://static.wixstatic.com/media/f2afd9_301e47c3580545dcb8f859729da702ed~mv2.jpg/v1/fill/w_514,h_386,fp_0.50_0.50,q_90,enc_avif,quality_auto/f2afd9_301e47c3580545dcb8f859729da702ed~mv2.jpg",
-    excerpt:
-      "Queens has quietly become NYC's fried chicken capital. Here are the spots leading the charge — including our own.",
-    body: "<p>Queens is where a lot of the most interesting fried chicken in New York is happening right now — from Astoria to Flushing to Jackson Heights. We highlight the spots worth a detour and explain why the borough has become the city's fried chicken capital.</p>",
-  },
-  {
-    slug: "steinway-street-dining-guide",
-    title: "Your Guide to Steinway Street Dining Options",
-    date: "February 12, 2026",
-    image:
-      "https://static.wixstatic.com/media/f2afd9_020fc51fc82747f5974857a00e1646d1~mv2.png/v1/fill/w_514,h_386,fp_0.50_0.50,q_95,enc_avif,quality_auto/f2afd9_020fc51fc82747f5974857a00e1646d1~mv2.png",
-    excerpt:
-      "A walkable eating tour of Steinway Street, Astoria — from halal fried chicken to Egyptian grills and everything in between.",
-    body: "<p>Steinway Street is arguably the most dense halal-friendly food corridor in New York City. In this guide we walk it end to end, stopping at the spots worth your time — including Chick Rocks at 30-02 Steinway St.</p>",
+      "Explore halal pasta and rice bowls in Queens and enjoy a fresh take on comfort food at Chick Rocks.",
+    body: `<p>Halal food in Queens continues to evolve beyond traditional platters. Nowadays, diners are looking for meals that combine bold flavor with comfort and convenience. That is where dishes like halal pasta and rice bowls are starting to stand out.</p>
+<p>At Chick Rocks, these modern comfort options bring together familiar ingredients and creative combinations, offering something different while still being satisfying and easy to enjoy.</p>
+<h2 class="wp-block-heading"><strong>A Fresh Take on Halal Comfort Food</strong></h2>
+<p>Classic halal meals often focus on rice platters and grilled meats. While those remain popular, newer menu items are expanding the dining experience. Pasta dishes and rice bowls now give customers more variety without losing the rich flavors they expect.</p>
+<p>This shift reflects how people eat today: Quick, filling meals that still deliver strong taste and quality.</p>
+<h2 class="wp-block-heading"><strong>Flavor-Packed Halal Pasta Options</strong></h2>
+<p>Pasta may not be the first thing that comes to mind when thinking about halal food, but it has quickly become a favorite for those looking for a hearty meal.</p>
+<p>These dishes combine:</p>
+<ul class="wp-block-list"><li>Savory sauces that bring depth and richness</li><li>Tender, well-seasoned protein layered over noodles</li><li>Balanced textures that make each bite satisfying</li><li>A fusion of global flavors with a halal twist</li></ul>
+<p>The result is a dish that is both familiar and unique. It is ideal for anyone who wants a break from traditional options while still enjoying bold flavors.</p>
+<h2 class="wp-block-heading"><strong>Rice Bowls That Keep It Classic</strong></h2>
+<p>At the same time, rice bowls continue to be a go-to choice for many customers. They offer a simple option but allow for a wide range of flavors and combinations.</p>
+<p>A well-prepared halal rice bowl delivers:</p>
+<ul class="wp-block-list"><li>Fluffy rice paired with rich, flavorful sauces</li><li>Crispy or grilled protein for contrast</li><li>Fresh sides that add balance to the dish</li><li>A complete meal that works for lunch or dinner</li></ul>
+<p>Because of this, rice bowls remain one of the most reliable and satisfying options on the menu.</p>
+<h2 class="wp-block-heading"><strong>Why These Dishes Work So Well</strong></h2>
+<p>The combination of pasta and rice bowls gives customers flexibility. Some days call for something heavier and more indulgent, while others call for something balanced and easier.</p>
+<p>This variety makes it easier to:</p>
+<ul class="wp-block-list"><li>Choose meals based on different cravings</li><li>Share and try multiple styles in one order</li><li>Enjoy both comfort food and modern flavors</li><li>Find options that fit different preferences</li></ul>
+<p>Instead of limiting choices, this approach expands what halal dining can look like.</p>
+<h2 class="wp-block-heading"><strong>A Go-To Spot for Everyday Meals</strong></h2>
+<p>Chick Rocks continues to build its reputation by offering food that fits real, everyday needs. The focus is not just on variety, but on consistency and flavor that customers can rely on.</p>
+<p>Whether you’re stopping in for a quick bite or picking up a full meal, options like pasta and rice bowls make it easy to find something satisfying without overthinking the choice.</p>
+<h2 class="wp-block-heading"><strong>Try Something Different in Queens</strong></h2>
+<p>Halal food in Queens is no longer limited to one singular style. With dishes like pasta and rice bowls, the dining experience continues to grow in new directions.</p>
+<p>If you’re ready to try something different, Chick Rocks offers a menu that blends comfort, flavor, and creativity. Stop by one of our locations or order online to explore halal food in a new way.</p>`,
   },
 ];
