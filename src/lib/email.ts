@@ -73,7 +73,7 @@ const layout = (heading: string, intro: string, order: Order): string => {
     <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:560px;margin:0 auto;background:#fff;border-radius:12px;overflow:hidden;">
       <tr>
         <td style="background:${BRAND};padding:24px;text-align:center;">
-          <img src="${SITE_URL}/email-logo.png" alt="Chick Rocks" width="160" style="display:inline-block;max-width:160px;height:auto;" />
+          <img src="${SITE_URL}/email-logo-white.png" alt="Chick Rocks" width="140" style="display:inline-block;width:140px;max-width:140px;height:auto;" />
         </td>
       </tr>
       <tr>
