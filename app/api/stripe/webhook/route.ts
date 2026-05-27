@@ -1,7 +1,8 @@
 import type Stripe from "stripe";
 import { db, orders } from "@/lib/db";
 import { getStripe } from "@/lib/stripe";
-import { eq } from "drizzle-orm";
+import { sendOrderReceipts } from "@/lib/email";
+import { and, eq, ne } from "drizzle-orm";
 
 // Webhooks need the raw request body for signature verification, so this must run
 // on Node (not edge) and read the body as text, not JSON.
@@ -39,7 +40,9 @@ export async function POST(req: Request) {
         if (session.payment_status !== "paid") break;
         const orderId = session.metadata?.orderId ?? session.client_reference_id;
         if (!orderId) break;
-        await db
+        // Guard on `status != paid` so Stripe's webhook retries (or duplicate
+        // deliveries) only transition the order — and send emails — once.
+        const [paidOrder] = await db
           .update(orders)
           .set({
             status: "paid",
@@ -47,7 +50,13 @@ export async function POST(req: Request) {
               typeof session.payment_intent === "string" ? session.payment_intent : null,
             stripeCheckoutSessionId: session.id,
           })
-          .where(eq(orders.id, orderId));
+          .where(and(eq(orders.id, orderId), ne(orders.status, "paid")))
+          .returning();
+        // Only the first delivery returns a row; send receipts then. Email is
+        // best-effort and never throws, so it can't fail the webhook.
+        if (paidOrder) {
+          await sendOrderReceipts(paidOrder);
+        }
         break;
       }
       case "checkout.session.expired": {
