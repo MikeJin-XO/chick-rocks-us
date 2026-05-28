@@ -62,23 +62,24 @@ function playChime() {
   setTimeout(() => ctx.close().catch(() => {}), 1500);
 }
 
-function speak(text: string) {
-  if (typeof window === "undefined" || !("speechSynthesis" in window)) return;
-  // Cancel any in-flight speech so rapid alerts don't queue up.
-  window.speechSynthesis.cancel();
-  const u = new SpeechSynthesisUtterance(text);
-  u.rate = 1;
-  u.pitch = 1;
-  u.volume = 1;
-  window.speechSynthesis.speak(u);
-}
-
-const ALERT_PHRASE = "You've got an order, please confirm it";
+const ALERT_AUDIO_SRC = "/order-alert.mp3";
 const REMINDER_INTERVAL_MS = 10_000;
+
+// Pre-generated neural-TTS clip ("You've got an order. Please confirm it.") —
+// sounds dramatically better than the browser's robotic SpeechSynthesis voice.
+function speak() {
+  if (typeof window === "undefined") return;
+  const audio = new Audio(ALERT_AUDIO_SRC);
+  audio.volume = 1;
+  audio.play().catch(() => {
+    // Autoplay was blocked (no user gesture yet). The "Enable sound" toggle
+    // primes the browser; once tapped, subsequent plays are allowed.
+  });
+}
 
 function playNewOrderAlert() {
   playChime();
-  setTimeout(() => speak(ALERT_PHRASE), 650);
+  setTimeout(speak, 650);
 }
 
 const storeName = (id: string) => STORES.find((s) => s.id === id)?.name ?? id;
