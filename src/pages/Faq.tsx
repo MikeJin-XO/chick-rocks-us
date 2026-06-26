@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Plus } from "lucide-react";
+import { Plus, Phone } from "lucide-react";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import Seo, { breadcrumbLd } from "@/components/Seo";
@@ -281,14 +281,15 @@ const Faq = () => {
           />
           <div className="flex flex-col sm:flex-row gap-3 justify-center pt-2">
             <a
-              href="mailto:catering@chickrocks.com"
-              className="inline-block bg-primary text-primary-foreground px-8 py-3 rounded-full font-bold uppercase tracking-wide hover:opacity-90 transition-opacity"
+              href="tel:+13472423449"
+              className="inline-flex items-center justify-center gap-2 bg-primary text-primary-foreground px-8 py-3 rounded-full font-bold uppercase tracking-wide hover:opacity-90 transition-opacity"
             >
+              <Phone className="w-4 h-4" />
               <InlineEdit
                 id="faq_bottom_cta_primary"
                 as="span"
                 isEditing={isEditing}
-                value={getDraftValue("faq_bottom_cta_primary", "Email Us")}
+                value={getDraftValue("faq_bottom_cta_primary", "(347) 242-3449")}
                 onChange={(v) => updateDraft("faq_bottom_cta_primary", v)}
               />
             </a>

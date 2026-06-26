@@ -18,7 +18,7 @@ RSYNC_SSH := ssh $(SSH_OPTS)
 
 LOCAL_THEME_DIR := wordpress-theme
 
-.PHONY: help prod build backup deploy deploy-clean ssh push pull-backup fix-maintenance
+.PHONY: help prod build backup deploy deploy-clean ssh push pull-backup fix-maintenance set-faq-phone purge-cache
 
 help:
 	@echo "Targets:"
@@ -71,6 +71,14 @@ pull-backup:
 		echo "Pulling $$latest"; \
 		rsync -avz --human-readable -e "$(RSYNC_SSH)" \
 			$(SG_USER)@$(SG_HOST):"$$latest" backups/
+
+set-faq-phone:
+	@echo "→ Updating FAQ bottom CTA text to phone number on live site…"
+	$(SSH_CMD) 'cd ~/$(SG_WP_ROOT) && id=$$(wp post list --post_type=page --name=faq --field=ID --format=ids); if [ -z "$$id" ]; then echo "❌ FAQ page not found"; exit 1; fi; echo "FAQ page ID: $$id"; echo "Before: $$(wp post meta get $$id faq_bottom_cta_primary 2>/dev/null)"; wp post meta update $$id faq_bottom_cta_primary "(347) 242-3449"; echo "After:  $$(wp post meta get $$id faq_bottom_cta_primary)"'
+
+purge-cache:
+	@echo "→ Purging SiteGround cache on live site…"
+	$(SSH_CMD) 'cd ~/$(SG_WP_ROOT) && wp sg purge 2>&1 || echo "(sg purge unavailable; flushing WP cache)"; wp cache flush 2>&1 || true'
 
 fix-maintenance:
 	@echo "→ Checking for stuck .maintenance file on live site…"
