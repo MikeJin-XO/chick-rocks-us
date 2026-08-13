@@ -1,5 +1,6 @@
-import { useEffect, useState } from "react";
-import { X, MapPin } from "lucide-react";
+import { useEffect } from "react";
+import { X, MapPin, Phone } from "lucide-react";
+import { useNow } from "@/hooks/use-now";
 import {
   DAY_LABELS,
   STORES,
@@ -21,9 +22,16 @@ const StoreCard = ({ store, now }: { store: Store; now: Date }) => {
   return (
     <div className="rounded-2xl border border-border bg-card p-5 sm:p-6 flex flex-col gap-4">
       <div className="space-y-1">
-        <h3 className="text-2xl font-heading uppercase tracking-wide text-foreground">
-          {store.name}
-        </h3>
+        <div className="flex items-baseline gap-2 flex-wrap">
+          <h3 className="text-2xl font-heading uppercase tracking-wide text-foreground leading-none">
+            {store.name}
+          </h3>
+          {store.isNew && (
+            <span className="shrink-0 rounded-full bg-accent/15 text-accent text-[10px] font-bold uppercase tracking-[0.14em] px-2 py-0.5">
+              New
+            </span>
+          )}
+        </div>
         <a
           href={store.mapsUrl}
           target="_blank"
@@ -36,6 +44,13 @@ const StoreCard = ({ store, now }: { store: Store; now: Date }) => {
             <br />
             {store.addressLine2}
           </span>
+        </a>
+        <a
+          href={`tel:${store.tel}`}
+          className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-primary transition-colors"
+        >
+          <Phone className="w-4 h-4 shrink-0" aria-hidden="true" />
+          <span>{store.phone}</span>
         </a>
       </div>
 
@@ -82,27 +97,23 @@ const StoreCard = ({ store, now }: { store: Store; now: Date }) => {
         </ul>
       </details>
 
+      {/* Label stays uniform across cards — "Order from {name}" wraps on longer
+          neighborhood names and knocks the buttons out of alignment. */}
       <a
         href={store.orderUrl}
         target="_blank"
         rel="noopener noreferrer"
-        className="mt-auto inline-flex items-center justify-center bg-primary text-primary-foreground px-5 py-3 rounded-full font-bold uppercase tracking-wide hover:opacity-90 transition-opacity"
+        aria-label={`Order online from Chick Rocks ${store.name}`}
+        className="mt-auto inline-flex items-center justify-center bg-primary text-primary-foreground px-5 py-3 rounded-full font-bold uppercase tracking-wide hover:opacity-90 transition-opacity whitespace-nowrap"
       >
-        Order from {store.name}
+        Order Online
       </a>
     </div>
   );
 };
 
 const OrderStorePickerModal = ({ open, onClose }: Props) => {
-  const [now, setNow] = useState(() => new Date());
-
-  useEffect(() => {
-    if (!open) return;
-    setNow(new Date());
-    const t = setInterval(() => setNow(new Date()), 60_000);
-    return () => clearInterval(t);
-  }, [open]);
+  const now = useNow(open);
 
   useEffect(() => {
     if (!open) return;
@@ -133,7 +144,7 @@ const OrderStorePickerModal = ({ open, onClose }: Props) => {
         onClick={onClose}
         className="absolute inset-0 bg-black/60 backdrop-blur-sm"
       />
-      <div className="relative w-full max-w-3xl max-h-[90vh] overflow-y-auto bg-background rounded-3xl shadow-2xl">
+      <div className="relative w-full max-w-3xl lg:max-w-5xl max-h-[90vh] overflow-y-auto bg-background rounded-3xl shadow-2xl">
         <div className="sticky top-0 z-10 flex items-center justify-between gap-4 px-6 sm:px-8 pt-6 pb-4 bg-background border-b border-border">
           <div>
             <h2
@@ -155,7 +166,7 @@ const OrderStorePickerModal = ({ open, onClose }: Props) => {
             <X className="w-5 h-5" />
           </button>
         </div>
-        <div className="px-6 sm:px-8 py-6 grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-5">
+        <div className="px-6 sm:px-8 py-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5">
           {STORES.map((store) => (
             <StoreCard key={store.id} store={store} now={now} />
           ))}

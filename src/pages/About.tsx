@@ -2,9 +2,11 @@ import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import Seo, { breadcrumbLd, SITE } from "@/components/Seo";
 import { useEdit } from "@/contexts/EditContext";
+import { useOrderModal } from "@/contexts/OrderModalContext";
 import { InlineEdit } from "@/components/ui/inline-edit";
 import { MediaEdit } from "@/components/ui/media-edit";
 import { cn } from "@/lib/utils";
+import { STORE_CITIES_SENTENCE } from "@/lib/stores";
 
 const Sparkle = ({ className, style }: { className?: string; style?: React.CSSProperties }) => (
   <svg
@@ -21,7 +23,7 @@ const Sparkle = ({ className, style }: { className?: string; style?: React.CSSPr
 const aboutLd = {
   "@context": "https://schema.org",
   "@type": "AboutPage",
-  name: "About Chick Rocks — Halal Fried Chicken in Astoria & Flushing",
+  name: "About Chick Rocks — Halal Fried Chicken in Astoria, Flushing & Jackson Heights",
   url: `${SITE.URL}/about`,
   about: {
     "@type": "Restaurant",
@@ -37,13 +39,14 @@ const aboutCrumbsLd = breadcrumbLd([
 
 const About = () => {
   const { isEditing, getDraftValue, updateDraft } = useEdit();
+  const { open: openOrderModal } = useOrderModal();
   const base = import.meta.env.BASE_URL;
 
   return (
     <div className="min-h-screen bg-cream flex flex-col">
       <Seo
-        title="About Chick Rocks — Halal Fried Chicken in Astoria & Flushing"
-        description="Chick Rocks brings bold halal fried chicken, sandwiches, rice bowls and spaghetti combos to Astoria and Flushing, Queens. 100% halal, hand-breaded and fried fresh to order."
+        title="About Chick Rocks — Halal Fried Chicken in Astoria, Flushing & Jackson Heights"
+        description="Chick Rocks brings bold halal fried chicken, sandwiches, rice bowls and spaghetti combos to Astoria, Flushing and Jackson Heights, Queens. 100% halal, hand-breaded and fried fresh to order."
         path="/about"
         keywords="chick rocks story, halal fried chicken astoria, halal restaurant queens, chinese american halal"
         image={`${SITE.URL}/store-front-1.webp`}
@@ -96,12 +99,12 @@ const About = () => {
             <InlineEdit
               id="about_v3_hero_subtitle"
               as="p"
-              className="font-serif italic text-base sm:text-lg md:text-xl lg:text-2xl leading-[1.4] text-foreground/75 max-w-2xl text-center block text-pretty"
+              className="text-sm sm:text-base leading-relaxed text-foreground/75 max-w-md sm:max-w-2xl text-center block text-pretty"
               isEditing={isEditing}
               multiline
               value={getDraftValue(
                 "about_v3_hero_subtitle",
-                "Crispy halal fried chicken, wings, sandwiches, rice bowls, and comfort food served fresh in Astoria and Flushing, Queens."
+                `Crispy halal fried chicken, wings, sandwiches, rice bowls, and comfort food served fresh in ${STORE_CITIES_SENTENCE}, Queens.`
               )}
               onChange={(v) => updateDraft("about_v3_hero_subtitle", v)}
             />
@@ -307,7 +310,7 @@ const About = () => {
                 multiline
                 value={getDraftValue(
                   "about_v3_story_p3",
-                  "As more customers asked for halal food options, we listened. What started as growing demand from the Queens community became part of who we are. Today, both our Astoria and Flushing locations serve an all-halal menu, so more people can enjoy the fried chicken, wings, sandwiches, and comfort food they love without compromise."
+                  `As more customers asked for halal food options, we listened. What started as growing demand from the Queens community became part of who we are. Today, all of our Queens locations — ${STORE_CITIES_SENTENCE} — serve an all-halal menu, so more people can enjoy the fried chicken, wings, sandwiches, and comfort food they love without compromise.`
                 )}
                 onChange={(v) => updateDraft("about_v3_story_p3", v)}
               />
@@ -459,7 +462,7 @@ const About = () => {
                   multiline
                   value={getDraftValue(
                     "about_v3_pillar_2_body",
-                    "We made the full menu halal at both our Queens locations, giving customers in Astoria and Flushing more ways to enjoy fried chicken, wings, sandwiches, and comfort food without compromise."
+                    `We made the full menu halal at every one of our Queens locations, giving customers in ${STORE_CITIES_SENTENCE} more ways to enjoy fried chicken, wings, sandwiches, and comfort food without compromise.`
                   )}
                   onChange={(v) => updateDraft("about_v3_pillar_2_body", v)}
                 />
@@ -514,7 +517,7 @@ const About = () => {
               <InlineEdit
                 id="about_page_section_2_heading"
                 as="h2"
-                className="text-3xl sm:text-4xl md:text-5xl font-heading uppercase leading-tight text-foreground block text-balance"
+                className="text-2xl sm:text-4xl md:text-5xl font-heading uppercase leading-tight text-foreground block text-balance"
                 isEditing={isEditing}
                 value={getDraftValue("about_page_section_2_heading", "More Than Just Fried Chicken")}
                 onChange={(v) => updateDraft("about_page_section_2_heading", v)}
@@ -527,7 +530,7 @@ const About = () => {
                 multiline
                 value={getDraftValue(
                   "about_page_section_2_body",
-                  "From halal fried chicken and signature chicken sandwiches to wings, rice bowls, and spaghetti combos, Chick Rocks serves bold comfort food inspired by Queens. Whether you are stopping by our Astoria or Flushing location for a quick bite, ordering takeout, or planning your next meal, our menu is made for big flavor and satisfying halal meals."
+                  `From halal fried chicken and signature chicken sandwiches to wings, rice bowls, and spaghetti combos, Chick Rocks serves bold comfort food inspired by Queens. Whether you are stopping by one of our ${STORE_CITIES_SENTENCE} locations for a quick bite, ordering takeout, or planning your next meal, our menu is made for big flavor and satisfying halal meals.`
                 )}
                 onChange={(v) => updateDraft("about_page_section_2_body", v)}
               />
@@ -602,39 +605,27 @@ const About = () => {
                 multiline
                 value={getDraftValue(
                   "about_page_belief_body",
-                  "Crispy fried chicken, sandwiches, wings, and comfort food favorites made for big flavor. Order Chick Rocks online from our Flushing or Astoria location."
+                  `Crispy fried chicken, sandwiches, wings, and comfort food favorites made for big flavor. Order Chick Rocks online from any of our ${STORE_CITIES_SENTENCE} locations.`
                 )}
                 onChange={(v) => updateDraft("about_page_belief_body", v)}
               />
-              <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 pt-2">
-                <a
-                  href="https://pos.chowbus.com/online-ordering/store/chick-rocks/11843"
-                  target="_blank"
-                  rel="noopener noreferrer"
+              <div className="flex flex-wrap items-center gap-3 sm:gap-4 pt-2">
+                <button
+                  type="button"
+                  onClick={openOrderModal}
                   className="inline-flex items-center justify-center bg-primary text-primary-foreground px-7 py-3.5 rounded-full font-bold uppercase tracking-wide hover:translate-y-[-2px] hover:shadow-lg transition-all duration-200"
                 >
                   <InlineEdit
-                    id="about_page_cta_flushing"
+                    id="about_page_cta_order"
                     as="span"
                     isEditing={isEditing}
-                    value={getDraftValue("about_page_cta_flushing", "Order Flushing Location")}
-                    onChange={(v) => updateDraft("about_page_cta_flushing", v)}
+                    value={getDraftValue("about_page_cta_order", "Order Now")}
+                    onChange={(v) => updateDraft("about_page_cta_order", v)}
                   />
-                </a>
-                <a
-                  href="https://pos.chowbus.com/online-ordering/store/chick-rocks-astoria/20957"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center justify-center border-2 border-primary text-primary px-7 py-3.5 rounded-full font-bold uppercase tracking-wide hover:bg-primary hover:text-primary-foreground transition-colors duration-200"
-                >
-                  <InlineEdit
-                    id="about_page_cta_astoria"
-                    as="span"
-                    isEditing={isEditing}
-                    value={getDraftValue("about_page_cta_astoria", "Order Astoria Location")}
-                    onChange={(v) => updateDraft("about_page_cta_astoria", v)}
-                  />
-                </a>
+                </button>
+                <span className="text-xs sm:text-sm text-muted-foreground">
+                  {STORE_CITIES_SENTENCE}
+                </span>
               </div>
             </div>
           </div>

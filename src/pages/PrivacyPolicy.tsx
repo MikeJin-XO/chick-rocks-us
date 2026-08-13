@@ -44,7 +44,7 @@ const PrivacyPolicy = () => {
     <div className="min-h-screen bg-background flex flex-col">
       <Seo
         title="Privacy Policy | Chick Rocks"
-        description="How Chick Rocks collects, uses and protects information when you visit chickrocksusa.com or place an order at our Astoria and Flushing locations."
+        description="How Chick Rocks collects, uses and protects information when you visit chickrocksusa.com or place an order at any of our Queens locations."
         path="/privacy"
       />
       <Navbar />

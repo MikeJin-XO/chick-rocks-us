@@ -68,7 +68,7 @@ const Blog = () => {
     <div className="min-h-screen bg-background flex flex-col">
       <Seo
         title="Halal Food & Fried Chicken Blog | Chick Rocks"
-        description="Halal food guides, Astoria eats, fried chicken explainers, recipes and news from Chick Rocks — the halal fried chicken spot in Astoria and Flushing, NY."
+        description="Halal food guides, Astoria eats, fried chicken explainers, recipes and news from Chick Rocks — the halal fried chicken spot in Astoria, Flushing and Jackson Heights, NY."
         path="/blog"
         keywords="halal food blog nyc, halal fried chicken blog, astoria food blog, queens halal guide"
         jsonLd={[buildBlogLd(posts), blogCrumbsLd]}
@@ -122,12 +122,12 @@ const Blog = () => {
           <InlineEdit
             id="blog_page_hero_subtext"
             as="p"
-            className="mt-3 sm:mt-4 text-[13px] sm:text-sm md:text-[15px] leading-relaxed opacity-90 max-w-3xl mx-auto block text-pretty"
+            className="mt-3 sm:mt-4 text-sm sm:text-base leading-relaxed opacity-90 max-w-md sm:max-w-3xl mx-auto block text-pretty"
             isEditing={isEditing}
             multiline
             value={getDraftValue(
               "blog_page_hero_subtext",
-              "Halal food stories, fried chicken favorites, and the latest from Astoria and Flushing."
+              "Halal food stories, fried chicken favorites, and the latest from our Queens kitchens."
             )}
             onChange={(v) => updateDraft("blog_page_hero_subtext", v)}
           />

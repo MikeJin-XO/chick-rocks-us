@@ -54,24 +54,40 @@ const CrowdFavorites = () => {
   return (
     <section className="py-12 sm:py-14 md:py-16 bg-cream">
       <div className="container mx-auto px-4">
-        <div className="flex items-center justify-between gap-4 mb-6 sm:mb-8 md:mb-10">
-          <InlineEdit
-            id="favorites_heading"
-            as="h2"
-            className="text-3xl sm:text-4xl md:text-5xl font-heading uppercase text-foreground text-balance"
-            isEditing={isEditing}
-            value={getDraftValue("favorites_heading", "Customer Favorites")}
-            onChange={(v) => updateDraft("favorites_heading", v)}
-          />
-          <Link to="/menu" className="lg:hidden text-primary font-semibold text-sm hover:underline whitespace-nowrap shrink-0">
+        <div className="flex items-end justify-between gap-4 mb-6 sm:mb-8 md:mb-10">
+          <div className="min-w-0">
+            <div className="flex items-baseline justify-between gap-4">
+              <InlineEdit
+                id="favorites_heading"
+                as="h2"
+                className="text-2xl sm:text-4xl md:text-5xl font-heading uppercase leading-tight text-foreground text-balance"
+                isEditing={isEditing}
+                value={getDraftValue("favorites_heading", "Customer Favorites")}
+                onChange={(v) => updateDraft("favorites_heading", v)}
+              />
+              <Link to="/menu" className="lg:hidden text-primary font-semibold text-sm hover:underline whitespace-nowrap shrink-0">
+                <InlineEdit
+                  id="favorites_view_menu"
+                  as="span"
+                  isEditing={isEditing}
+                  value={getDraftValue("favorites_view_menu", "View Menu →")}
+                  onChange={(v) => updateDraft("favorites_view_menu", v)}
+                />
+              </Link>
+            </div>
             <InlineEdit
-              id="favorites_view_menu"
-              as="span"
+              id="favorites_subtext"
+              as="p"
+              className="mt-3 sm:mt-4 text-sm sm:text-base text-muted-foreground max-w-md sm:max-w-4xl leading-relaxed text-pretty hidden sm:block"
               isEditing={isEditing}
-              value={getDraftValue("favorites_view_menu", "View Menu →")}
-              onChange={(v) => updateDraft("favorites_view_menu", v)}
+              multiline
+              value={getDraftValue(
+                "favorites_subtext",
+                "Discover Chick Rocks' most popular halal comfort food, including crispy fried chicken, chicken sandwiches, rice bowls, and signature menu favorites loved by customers across Queens.",
+              )}
+              onChange={(v) => updateDraft("favorites_subtext", v)}
             />
-          </Link>
+          </div>
           <div className="hidden lg:flex items-center gap-2 shrink-0">
             <button
               type="button"
@@ -91,7 +107,13 @@ const CrowdFavorites = () => {
             </button>
           </div>
         </div>
-        <div ref={scrollerRef} className="grid grid-flow-col auto-cols-[78%] sm:auto-cols-[calc((100%-1.5rem)/2)] lg:auto-cols-[calc((100%-4.5rem)/4)] gap-6 overflow-x-auto -mx-4 px-4 lg:mx-0 lg:px-0 snap-x snap-mandatory scrollbar-hide scroll-smooth">
+        <div
+          ref={scrollerRef}
+          tabIndex={0}
+          role="group"
+          aria-label="Crowd favorites, scroll horizontally to see more"
+          className="grid grid-flow-col auto-cols-[78%] sm:auto-cols-[calc((100%-1.5rem)/2)] lg:auto-cols-[calc((100%-4.5rem)/4)] gap-6 overflow-x-auto -mx-4 px-4 lg:mx-0 lg:px-0 snap-x snap-mandatory scrollbar-hide scroll-smooth"
+        >
           {favorites.map((item) => {
             const nameKey = `${item.key}_name`;
             const descKey = `${item.key}_desc`;

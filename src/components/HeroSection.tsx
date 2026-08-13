@@ -1,8 +1,11 @@
-import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
-import { MapPin, ChevronLeft, ChevronRight, Pause, Play } from "lucide-react";
+import { Fragment, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { Link } from "react-router-dom";
+import { MapPin, ChevronLeft, ChevronRight, Pause, Play, ShoppingBag } from "lucide-react";
 import { useEdit } from "@/contexts/EditContext";
+import { useOrderModal } from "@/contexts/OrderModalContext";
 import { InlineEdit } from "@/components/ui/inline-edit";
 import { MediaEdit } from "@/components/ui/media-edit";
+import { STORES, STORE_CITIES_SENTENCE } from "@/lib/stores";
 
 const COPIES = 5;
 
@@ -16,14 +19,31 @@ const AUTOPLAY_MS = 5000;
 
 const HeroSection = () => {
   const { isEditing, getDraftValue, updateDraft } = useEdit();
+  const { open: openOrderModal } = useOrderModal();
   const base = import.meta.env.BASE_URL;
 
-  const slides = useMemo(
+  const slideDefaults = useMemo(
     () => [
-      getDraftValue("hero_slide_1_img", `${base}uploads/2026/05/Chicken-ChickRocks-.jpg`),
-      getDraftValue("hero_slide_2_img", `${base}uploads/2026/05/Hamburger-Chickrocks.jpg`),
+      `${base}hero-images/chick-rocks-2026-08-banner-1.avif`,
+      `${base}hero-images/chick-rocks-2026-08-banner-2.avif`,
+      `${base}hero-images/chick-rocks-2026-08-banner-3.avif`,
+      `${base}hero-images/chick-rocks-2026-08-banner-4.avif`,
     ],
-    [getDraftValue, base]
+    [base]
+  );
+
+  const slideLinks = ["/about", "/menu", "/menu", "/menu"];
+
+  const slideAlts = [
+    "Grand opening of Chick Rocks Jackson Heights at 83-12 37th Ave, Jackson Heights, NY 11372",
+    "Mix fried chicken, 3 pieces for $5",
+    "Mix fried chicken family combo, 10 pieces for $24.99 with three medium sides",
+    "Rocks Slider 2 for $7, combo 1 for $8.99 and combo 2 for $11.99",
+  ];
+
+  const slides = useMemo(
+    () => slideDefaults.map((def, i) => getDraftValue(`hero_slide_${i + 1}_img`, def)),
+    [getDraftValue, slideDefaults]
   );
 
   const rendered = useMemo(
@@ -187,8 +207,17 @@ const HeroSection = () => {
           {rendered.map((src, i) => {
             const isCenter = i === vIndex;
             const slideIndex = i % slides.length;
-            const slideKey = slideIndex === 0 ? "hero_slide_1_img" : "hero_slide_2_img";
-            const defaultSrc = slideIndex === 0 ? `${base}uploads/2026/05/Chicken-ChickRocks-.jpg` : `${base}uploads/2026/05/Hamburger-Chickrocks.jpg`;
+            const slideKey = `hero_slide_${slideIndex + 1}_img`;
+            const defaultSrc = slideDefaults[slideIndex];
+            const slideLink = slideLinks[slideIndex];
+            const img = (
+              <img
+                src={src}
+                alt={slideAlts[slideIndex]}
+                loading="lazy"
+                className="block w-full h-auto bg-cream"
+              />
+            );
             return (
               <div
                 key={i}
@@ -204,20 +233,14 @@ const HeroSection = () => {
                     value={getDraftValue(slideKey, defaultSrc)}
                     onChange={(v) => updateDraft(slideKey, v)}
                   >
-                    <img
-                      src={src}
-                      alt="Chick Rocks featured promotion"
-                      loading="lazy"
-                      className="block w-full h-auto bg-cream"
-                    />
+                    {img}
                   </MediaEdit>
+                ) : isCenter ? (
+                  <Link to={slideLink} className="block">
+                    {img}
+                  </Link>
                 ) : (
-                  <img
-                    src={src}
-                    alt="Chick Rocks featured promotion"
-                    loading="lazy"
-                    className="block w-full h-auto bg-cream"
-                  />
+                  img
                 )}
               </div>
             );
@@ -262,51 +285,59 @@ const HeroSection = () => {
         </div>
       </div>
 
-      <div className="container mx-auto px-4 mt-6 max-w-6xl text-center">
+      <div className="hidden sm:block container mx-auto px-4 mt-6 max-w-6xl text-center">
         <InlineEdit
           id="hero_intro_text"
           as="p"
           isEditing={isEditing}
           value={getDraftValue(
             "hero_intro_text",
-            "Chick Rocks serves halal food in Queens with crispy fried chicken, wings, chicken sandwiches, rice bowls, spaghetti, drinks, and comfort food favorites. Visit our Astoria and Flushing locations for dine-in, pickup, delivery, catering, and bold halal chicken meals made for every craving."
+            `Chick Rocks serves halal food in Queens with crispy fried chicken, wings, chicken sandwiches, rice bowls, spaghetti, drinks, and comfort food favorites. Visit our ${STORE_CITIES_SENTENCE} locations for dine-in, pickup, delivery, catering, and bold halal chicken meals made for every craving.`
           )}
           onChange={(v) => updateDraft("hero_intro_text", v)}
           className="text-foreground/80 text-sm sm:text-base leading-relaxed [text-wrap:balance]"
         />
       </div>
 
-      <div className="container mx-auto px-4 mt-6 flex flex-row items-center justify-center gap-3 sm:gap-4">
-        <a
-          href="https://pos.chowbus.com/online-ordering/store/chick-rocks/11843"
-          target="_blank"
-          rel="noopener noreferrer"
-          className="flex flex-1 sm:flex-none items-center justify-center gap-2 bg-primary text-primary-foreground px-4 sm:px-10 py-3 sm:py-4 rounded-full font-bold hover:opacity-90 transition-opacity sm:min-w-[220px]"
+      {/* Exactly one thing here looks clickable. The store names sit underneath as a
+          plain caption — they keep the neighborhoods on the page for search and tell
+          you a choice is coming, without competing with the CTA. Picking the store
+          happens in the modal, which already has addresses, phones and hours. */}
+      <div className="container mx-auto px-4 mt-4 sm:mt-6 flex flex-col items-center gap-2.5 sm:gap-3">
+        <button
+          type="button"
+          onClick={openOrderModal}
+          className="flex w-full sm:w-auto items-center justify-center gap-2.5 bg-primary text-primary-foreground px-8 sm:px-14 py-3.5 sm:py-4 rounded-full font-bold uppercase tracking-wide text-base sm:text-lg shadow-lg shadow-primary/25 hover:opacity-90 hover:-translate-y-0.5 transition-all duration-200 sm:min-w-[280px]"
         >
-          <MapPin className="w-5 h-5" />
+          <ShoppingBag className="w-5 h-5" aria-hidden="true" />
           <InlineEdit
-            id="hero_cta_location_1"
+            id="hero_cta_order"
             as="span"
             isEditing={isEditing}
-            value={getDraftValue("hero_cta_location_1", "Flushing, NY")}
-            onChange={(v) => updateDraft("hero_cta_location_1", v)}
+            value={getDraftValue("hero_cta_order", "Order Now")}
+            onChange={(v) => updateDraft("hero_cta_order", v)}
           />
-        </a>
-        <a
-          href="https://pos.chowbus.com/online-ordering/store/chick-rocks-astoria/20957"
-          target="_blank"
-          rel="noopener noreferrer"
-          className="flex flex-1 sm:flex-none items-center justify-center gap-2 bg-primary text-primary-foreground px-4 sm:px-10 py-3 sm:py-4 rounded-full font-bold hover:opacity-90 transition-opacity sm:min-w-[220px]"
-        >
-          <MapPin className="w-5 h-5" />
-          <InlineEdit
-            id="hero_cta_location_2"
-            as="span"
-            isEditing={isEditing}
-            value={getDraftValue("hero_cta_location_2", "Astoria, NY")}
-            onChange={(v) => updateDraft("hero_cta_location_2", v)}
-          />
-        </a>
+        </button>
+        <p className="flex flex-wrap items-center justify-center gap-x-2 gap-y-1 text-xs sm:text-sm text-muted-foreground">
+          <MapPin className="w-4 h-4 shrink-0 text-primary" aria-hidden="true" />
+          {STORES.map((store, i) => (
+            <Fragment key={store.id}>
+              {i > 0 && (
+                <span aria-hidden="true" className="opacity-40">
+                  ·
+                </span>
+              )}
+              <span className="inline-flex items-center gap-1.5 font-semibold text-foreground/75">
+                {store.name}
+                {store.isNew && (
+                  <span className="rounded-full bg-accent/15 text-accent text-[9px] font-bold uppercase tracking-[0.12em] px-1.5 py-0.5">
+                    New
+                  </span>
+                )}
+              </span>
+            </Fragment>
+          ))}
+        </p>
       </div>
     </section>
   );

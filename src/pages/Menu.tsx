@@ -7,7 +7,12 @@ import Seo, { breadcrumbLd, SITE } from "@/components/Seo";
 import { cn } from "@/lib/utils";
 import menuData from "@/lib/data/menu.json";
 import { useEdit } from "@/contexts/EditContext";
+import { useOrderModal } from "@/contexts/OrderModalContext";
 import { MediaEdit } from "@/components/ui/media-edit";
+import { InlineEdit } from "@/components/ui/inline-edit";
+import { STORES, STORE_CITIES_SENTENCE } from "@/lib/stores";
+
+const STORE_DOT_LIST = STORES.map((s) => s.name).join(" · ");
 
 type MenuItem = {
   category: string;
@@ -25,6 +30,8 @@ const priceToValue = (price: string): string | undefined => {
 
 type CategoryRowProps = {
   category: string;
+  description?: string;
+  descriptionKey: string;
   items: MenuItem[];
   isEditing: boolean;
   getDraftValue: (key: string, defaultValue: string) => string;
@@ -56,7 +63,7 @@ const Sparkle = ({ className, style }: { className?: string; style?: React.CSSPr
   </svg>
 );
 
-const CategoryRow = ({ category, items, isEditing, getDraftValue, updateDraft, imagePrefix }: CategoryRowProps) => {
+const CategoryRow = ({ category, description, descriptionKey, items, isEditing, getDraftValue, updateDraft, imagePrefix }: CategoryRowProps) => {
   const scrollerRef = useRef<HTMLDivElement | null>(null);
   const [canPrev, setCanPrev] = useState(false);
   const [canNext, setCanNext] = useState(false);
@@ -96,11 +103,24 @@ const CategoryRow = ({ category, items, isEditing, getDraftValue, updateDraft, i
   return (
     <>
       <div className="flex items-end justify-between gap-4 mb-4 sm:mb-5 md:mb-6">
-        <h2 className="text-xl sm:text-2xl md:text-[1.625rem] font-body font-bold uppercase tracking-tight text-foreground text-balance leading-tight">
-          {stripCJK(category).toUpperCase()}
-        </h2>
+        <div className="min-w-0">
+          <h2 className="text-xl sm:text-2xl md:text-[1.625rem] font-body font-bold uppercase tracking-tight text-foreground text-balance leading-tight">
+            {stripCJK(category).toUpperCase()}
+          </h2>
+          {description && (
+            <InlineEdit
+              id={descriptionKey}
+              as="p"
+              className="mt-2 sm:mt-3 text-sm sm:text-base text-muted-foreground max-w-md sm:max-w-4xl leading-relaxed block text-pretty"
+              isEditing={isEditing}
+              multiline
+              value={getDraftValue(descriptionKey, description)}
+              onChange={(v) => updateDraft(descriptionKey, v)}
+            />
+          )}
+        </div>
         {hasOverflow && (
-          <div className="hidden md:flex items-center gap-2">
+          <div className="hidden md:flex items-center gap-2 shrink-0">
             <button
               type="button"
               aria-label={`Previous ${stripCJK(category)} items`}
@@ -124,6 +144,9 @@ const CategoryRow = ({ category, items, isEditing, getDraftValue, updateDraft, i
       </div>
       <div
         ref={scrollerRef}
+        tabIndex={0}
+        role="group"
+        aria-label={`${stripCJK(category) || category} items, scroll horizontally to see more`}
         className="flex gap-6 overflow-x-auto snap-x snap-mandatory scrollbar-hide -mx-4 px-4 sm:mx-0 sm:px-0"
       >
         {items.map((item) => {
@@ -170,11 +193,11 @@ const NAV_OFFSET = 136;
 const menuFaqItems = [
   {
     q: "Is the Chick Rocks menu halal?",
-    a: "Yes. Chick Rocks serves halal chicken at both our Astoria and Flushing locations in Queens.",
+    a: `Yes. Chick Rocks serves halal chicken at all of our Queens locations — ${STORE_CITIES_SENTENCE}.`,
   },
   {
     q: "Can I order Chick Rocks online?",
-    a: "Yes. You can order online for pickup or delivery from our Astoria or Flushing location.",
+    a: `Yes. You can order online for pickup or delivery from our ${STORE_CITIES_SENTENCE} locations.`,
   },
   {
     q: "What is on the Chick Rocks menu?",
@@ -196,6 +219,33 @@ const CJK_GLOBAL = /[一-鿿　-〿＀-￯]/g;
 
 const stripCJK = (s: string) => s.replace(CJK_GLOBAL, "").replace(/\s+/g, " ").trim();
 
+const normalizeCategory = (s: string) =>
+  stripCJK(s).toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
+
+const CATEGORY_DESCRIPTIONS: Record<string, string> = {
+  "special offer":
+    "Enjoy the best deals on halal chicken specials, including family combos, wings, and value-packed meals for every appetite.",
+  "rice bowl": "Fresh halal chicken served over seasoned rice with bold flavors.",
+  "rocks spaghetti combo":
+    "Enjoy our signature Rocks Spaghetti Combos, served with flavorful toppings, crispy chicken options, and a refreshing drink for a satisfying halal meal.",
+  "burger sandwich":
+    "Crispy halal chicken sandwiches made with premium ingredients and signature sauces.",
+  "mix combo":
+    "Enjoy our halal mix combos, featuring chicken sandwiches, burgers, fries, and a drink for a complete, value-packed meal.",
+  "mix chicken combo":
+    "Enjoy our halal mix chicken combos, featuring crispy fried chicken in a variety of piece options, freshly cooked and perfect for any appetite.",
+  "crispy tender combo":
+    "Enjoy our halal crispy tender combos, featuring crispy wings, grilled wings, nuggets, fries, and a drink for a complete, satisfying meal.",
+  "chicken wings": "Choose from crispy or grilled halal wings tossed in flavorful sauces.",
+  snack:
+    "Complete your meal with our halal snacks, including seasoned fries, popcorn chicken, nuggets, and tasty sides perfect for sharing or enjoying on the go.",
+  beverages:
+    "Refresh your meal with our handcrafted beverages, including creamy milkshakes, handmade milk tea, and other refreshing drinks made to order.",
+  dessert: "Finish your meal with our selection of classic desserts and sweet treats.",
+  sauces:
+    "Add extra flavor to your meal with our signature sauces, including spicy, sweet, and creamy dipping sauces made to pair perfectly with our halal chicken.",
+};
+
 const slugify = (s: string) =>
   stripCJK(s)
     .toLowerCase()
@@ -205,6 +255,7 @@ const slugify = (s: string) =>
 const Menu = () => {
   const base = import.meta.env.BASE_URL;
   const { isEditing, getDraftValue, updateDraft } = useEdit();
+  const { open: openOrderModal } = useOrderModal();
   const sections = useMemo(() => {
     const map = new Map<string, MenuItem[]>();
     (menuData as MenuItem[]).forEach((item) => {
@@ -325,7 +376,7 @@ const Menu = () => {
     <div className="min-h-screen bg-background flex flex-col">
       <Seo
         title="Halal Fried Chicken Menu — Sandwiches, Wings & Rice Bowls | Chick Rocks"
-        description="The full Chick Rocks halal menu — crispy fried chicken, signature sandwiches, wings, rice bowls, spaghetti combos, sides and drinks. Fresh, halal, made to order in Astoria & Flushing, NY."
+        description="The full Chick Rocks halal menu — crispy fried chicken, signature sandwiches, wings, rice bowls, spaghetti combos, sides and drinks. Fresh, halal, made to order in Astoria, Flushing & Jackson Heights, NY."
         path="/menu"
         keywords="halal fried chicken menu, halal chicken sandwich astoria, halal wings queens, halal rice bowl nyc, chick rocks menu"
         image={`${SITE.URL}/Fried_Chicken_Nyc.png`}
@@ -358,7 +409,7 @@ const Menu = () => {
 
           <div className="mt-4 sm:mt-5 flex items-center gap-3 sm:gap-4 text-[10px] sm:text-[11px] font-bold uppercase tracking-[0.32em] opacity-80">
             <span aria-hidden className="h-px w-8 sm:w-10 bg-primary-foreground/60" />
-            <span>Astoria · Flushing</span>
+            <span>{STORE_DOT_LIST}</span>
             <span aria-hidden className="h-px w-8 sm:w-10 bg-primary-foreground/60" />
           </div>
 
@@ -372,27 +423,19 @@ const Menu = () => {
             <span className="h-px w-8 bg-primary-foreground" />
           </div>
 
-          <p className="mt-3 sm:mt-4 text-[13px] sm:text-sm md:text-[15px] leading-relaxed opacity-90 max-w-5xl mx-auto text-pretty">
-            Explore the Chick Rocks halal chicken menu with crispy fried chicken, chicken sandwiches, wings, rice bowls, spaghetti combos, desserts, drinks, and comfort food favorites at our Astoria and Flushing locations in Queens.
+          <p className="mt-3 sm:mt-4 text-sm sm:text-base leading-relaxed opacity-90 max-w-md sm:max-w-5xl mx-auto text-pretty">
+            Explore Chick Rocks' halal menu featuring crispy fried chicken, chicken sandwiches, wings, rice bowls, spaghetti combos, desserts, drinks, and comfort food favorites at our {STORE_CITIES_SENTENCE} locations in Queens.
           </p>
 
-          <div className="mt-5 sm:mt-6 flex flex-col sm:flex-row items-stretch sm:items-center justify-center gap-3 sm:gap-4 w-full sm:w-auto">
-            <a
-              href="https://pos.chowbus.com/online-ordering/store/chick-rocks/11843"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center justify-center bg-primary-foreground text-primary px-7 py-3 rounded-full font-bold uppercase tracking-wide shadow-lg shadow-black/10 hover:translate-y-[-2px] hover:shadow-xl transition-all duration-200 w-full sm:w-auto sm:min-w-[200px]"
+          <div className="mt-5 sm:mt-6 flex justify-center w-full sm:w-auto">
+            <button
+              type="button"
+              onClick={openOrderModal}
+              className="inline-flex items-center justify-center gap-2 bg-primary-foreground text-primary px-8 py-3 rounded-full font-bold uppercase tracking-wide shadow-lg shadow-black/10 hover:translate-y-[-2px] hover:shadow-xl transition-all duration-200 w-full sm:w-auto sm:min-w-[240px]"
             >
-              Order Now · Flushing
-            </a>
-            <a
-              href="https://pos.chowbus.com/online-ordering/store/chick-rocks-astoria/20957"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center justify-center border-2 border-primary-foreground text-primary-foreground px-7 py-3 rounded-full font-bold uppercase tracking-wide hover:bg-primary-foreground hover:text-primary transition-colors duration-200 w-full sm:w-auto sm:min-w-[200px]"
-            >
-              Order Now · Astoria
-            </a>
+              <ShoppingBag className="w-4 h-4" aria-hidden="true" />
+              Order Now
+            </button>
           </div>
         </div>
       </section>
@@ -423,12 +466,12 @@ const Menu = () => {
         <div className="grid md:grid-cols-[2fr_1fr] gap-6 md:gap-10 items-center -mb-4 sm:-mb-6">
           <p className="text-sm sm:text-base md:text-[17px] leading-relaxed text-muted-foreground text-pretty">
             <span className="font-semibold text-foreground">Looking for a halal chicken menu in Queens?</span>{" "}
-            Chick Rocks serves crispy halal fried chicken, wings, chicken sandwiches, burgers, rice bowls, Rocks spaghetti combos, snacks, desserts, and refreshing drinks. Order online from our Astoria or Flushing location for pickup, delivery, or a quick halal comfort food meal near you.
+            Chick Rocks serves crispy halal fried chicken, wings, chicken sandwiches, burgers, rice bowls, spaghetti combos, snacks, desserts, and refreshing drinks. Order online from our {STORE_CITIES_SENTENCE} locations for pickup, delivery, or dine-in.
           </p>
           <div className="grid grid-cols-2 gap-2.5 sm:gap-3">
             {[
               { Icon: Drumstick, label: "100% Halal" },
-              { Icon: MapPin, label: "Astoria · Flushing" },
+              { Icon: MapPin, label: `${STORES.length} Queens Locations` },
               { Icon: UtensilsCrossed, label: "Made to Order" },
               { Icon: ShoppingBag, label: "Pickup · Delivery" },
             ].map(({ Icon, label }) => (
@@ -448,6 +491,8 @@ const Menu = () => {
           <section key={section.slug} id={section.slug} className="scroll-mt-36">
             <CategoryRow
               category={section.category}
+              description={CATEGORY_DESCRIPTIONS[normalizeCategory(section.category)]}
+              descriptionKey={`menu_cat_${section.slug}_desc`}
               items={section.items}
               isEditing={isEditing}
               getDraftValue={getDraftValue}
@@ -461,12 +506,12 @@ const Menu = () => {
       <section className="bg-background py-12 sm:py-16 md:py-20">
         <div className="container mx-auto px-4 max-w-3xl">
           <p className="text-center text-sm sm:text-base leading-relaxed text-muted-foreground text-pretty">
-            Chick Rocks serves a halal chicken menu in Queens with crispy fried chicken, wings, chicken sandwiches, rice bowls, spaghetti combos, desserts, drinks, pickup, and delivery. Visit or order from our Astoria and Flushing locations for bold halal comfort food made fresh for every craving.
+            Chick Rocks serves a halal chicken menu in Queens with crispy fried chicken, wings, chicken sandwiches, rice bowls, spaghetti combos, desserts, drinks, pickup, and delivery. Visit or order from our {STORE_CITIES_SENTENCE} locations for bold halal comfort food made fresh for every craving.
           </p>
 
           <h2
             id="menu-faq-heading"
-            className="mt-12 sm:mt-14 md:mt-16 text-3xl sm:text-4xl md:text-5xl font-heading uppercase tracking-wide text-foreground text-center text-balance"
+            className="mt-12 sm:mt-14 md:mt-16 text-2xl sm:text-4xl md:text-5xl font-heading uppercase tracking-wide leading-tight text-foreground text-center text-balance"
           >
             Chick Rocks Menu FAQs
           </h2>
@@ -556,25 +601,20 @@ const Menu = () => {
                 Order From Our Halal Chicken Menu
               </h2>
               <p className="text-[13px] sm:text-sm md:text-[15px] leading-relaxed text-muted-foreground max-w-xl text-pretty">
-                Craving halal food in Queens? Order Chick Rocks online for crispy fried chicken, chicken sandwiches, wings, rice bowls, spaghetti combos, drinks, and more from our Astoria or Flushing location.
+                Craving halal food in Queens? Order Chick Rocks online for crispy fried chicken, chicken sandwiches, wings, rice bowls, spaghetti combos, drinks, and more from our {STORE_CITIES_SENTENCE} locations.
               </p>
-              <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 pt-2">
-                <a
-                  href="https://pos.chowbus.com/online-ordering/store/chick-rocks/11843"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center justify-center bg-primary text-primary-foreground px-7 py-3.5 rounded-full font-bold uppercase tracking-wide hover:translate-y-[-2px] hover:shadow-lg transition-all duration-200"
+              <div className="flex flex-wrap items-center gap-3 sm:gap-4 pt-2">
+                <button
+                  type="button"
+                  onClick={openOrderModal}
+                  className="inline-flex items-center justify-center gap-2 bg-primary text-primary-foreground px-7 py-3.5 rounded-full font-bold uppercase tracking-wide hover:translate-y-[-2px] hover:shadow-lg transition-all duration-200"
                 >
-                  Order Flushing Location
-                </a>
-                <a
-                  href="https://pos.chowbus.com/online-ordering/store/chick-rocks-astoria/20957"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center justify-center border-2 border-primary text-primary px-7 py-3.5 rounded-full font-bold uppercase tracking-wide hover:bg-primary hover:text-primary-foreground transition-colors duration-200"
-                >
-                  Order Astoria Location
-                </a>
+                  <ShoppingBag className="w-4 h-4" aria-hidden="true" />
+                  Order Now
+                </button>
+                <span className="text-xs sm:text-sm text-muted-foreground">
+                  {STORE_DOT_LIST}
+                </span>
               </div>
             </div>
           </div>

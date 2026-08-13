@@ -1,12 +1,21 @@
 import { useState } from "react";
-import { Plus, Phone } from "lucide-react";
+import { Plus, Phone, ShoppingBag } from "lucide-react";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import Seo, { breadcrumbLd } from "@/components/Seo";
 import { useEdit } from "@/contexts/EditContext";
 import { useOrderModal } from "@/contexts/OrderModalContext";
 import { InlineEdit } from "@/components/ui/inline-edit";
+import { STORES, STORE_CITIES_SENTENCE, summarizeHours } from "@/lib/stores";
 import { MediaEdit } from "@/components/ui/media-edit";
+
+// Built from STORES so the published addresses and hours always match the site.
+const LOCATIONS_ANSWER = `We have ${STORES.length} locations in Queens, New York: ${STORES.map(
+  (s) =>
+    `Chick Rocks ${s.name} at ${s.addressLine1}, ${s.addressLine2}, ${s.phone}, open ${summarizeHours(
+      s.hours
+    )}`
+).join("; ")}. Every location serves halal fried chicken for dine-in, takeout and delivery.`;
 
 const faqSections = [
   {
@@ -18,7 +27,7 @@ const faqSections = [
       },
       {
         q: "Is all of the food at Chick Rocks halal?",
-        a: "Yes, all menu items at Chick Rocks are halal. We created our menu to serve the growing demand for flavorful halal fried chicken, sandwiches, wings, rice bowls, spaghetti combos, and more in Astoria and Flushing.",
+        a: `Yes, all menu items at Chick Rocks are halal. We created our menu to serve the growing demand for flavorful halal fried chicken, sandwiches, wings, rice bowls, spaghetti combos, and more in ${STORE_CITIES_SENTENCE}.`,
       },
       {
         q: "What makes Chick Rocks different from other fried chicken spots?",
@@ -43,7 +52,7 @@ const faqSections = [
     items: [
       {
         q: "Where are your locations and what are your hours?",
-        a: "We have two locations in Queens, New York: Chick Rocks Astoria at 30-02 Steinway St, Astoria, NY 11103, and Chick Rocks Flushing at 136-20 Roosevelt Ave #25, Flushing, NY 11354. Both stores serve halal fried chicken for dine-in, takeout and delivery. Please check our Google Business Profile for up-to-date daily hours.",
+        a: LOCATIONS_ANSWER,
       },
       {
         q: "Do you offer family meals or combo meals?",
@@ -119,10 +128,10 @@ const Faq = () => {
   return (
     <div className="min-h-screen bg-background flex flex-col">
       <Seo
-        title="Halal Fried Chicken FAQ — Astoria & Flushing | Chick Rocks"
+        title="Halal Fried Chicken FAQ — Astoria, Flushing & Jackson Heights | Chick Rocks"
         description="Answers to common questions about Chick Rocks: halal certification, locations, hours, delivery, catering minimums, allergens and more."
         path="/faq"
-        keywords="halal fried chicken faq, chick rocks halal, halal catering queens faq, halal chicken astoria"
+        keywords="halal fried chicken faq, chick rocks halal, halal catering queens faq, halal chicken astoria, halal chicken jackson heights"
         jsonLd={[faqPageLd, crumbsLd]}
       />
       <Navbar />
@@ -174,12 +183,12 @@ const Faq = () => {
           <InlineEdit
             id="faq_page_hero_subtext"
             as="p"
-            className="mt-3 sm:mt-4 text-[13px] sm:text-sm md:text-[15px] leading-relaxed opacity-90 max-w-3xl mx-auto block text-pretty"
+            className="mt-3 sm:mt-4 text-sm sm:text-base leading-relaxed opacity-90 max-w-md sm:max-w-3xl mx-auto block text-pretty"
             isEditing={isEditing}
             multiline
             value={getDraftValue(
               "faq_page_hero_subtext",
-              "Everything you need to know about Chick Rocks halal fried chicken, sandwiches, catering, ordering, and our Astoria and Flushing locations."
+              `Everything you need to know about Chick Rocks halal fried chicken, sandwiches, catering, ordering, and our ${STORE_CITIES_SENTENCE} locations.`
             )}
             onChange={(v) => updateDraft("faq_page_hero_subtext", v)}
           />
@@ -279,25 +288,13 @@ const Faq = () => {
             )}
             onChange={(v) => updateDraft("faq_bottom_body", v)}
           />
-          <div className="flex flex-col sm:flex-row gap-3 justify-center pt-2">
-            <a
-              href="tel:+13472423449"
-              className="inline-flex items-center justify-center gap-2 bg-primary text-primary-foreground px-8 py-3 rounded-full font-bold uppercase tracking-wide hover:opacity-90 transition-opacity"
-            >
-              <Phone className="w-4 h-4" />
-              <InlineEdit
-                id="faq_bottom_cta_primary"
-                as="span"
-                isEditing={isEditing}
-                value={getDraftValue("faq_bottom_cta_primary", "(347) 242-3449")}
-                onChange={(v) => updateDraft("faq_bottom_cta_primary", v)}
-              />
-            </a>
+          <div className="flex flex-col items-center gap-4 pt-2">
             <button
               type="button"
               onClick={openOrderModal}
-              className="inline-block bg-card border border-border text-foreground px-8 py-3 rounded-full font-bold uppercase tracking-wide hover:border-primary hover:text-primary transition-colors"
+              className="inline-flex items-center justify-center gap-2 bg-primary text-primary-foreground px-8 py-3 rounded-full font-bold uppercase tracking-wide hover:opacity-90 transition-opacity"
             >
+              <ShoppingBag className="w-4 h-4" />
               <InlineEdit
                 id="faq_bottom_cta_secondary"
                 as="span"
@@ -306,6 +303,20 @@ const Faq = () => {
                 onChange={(v) => updateDraft("faq_bottom_cta_secondary", v)}
               />
             </button>
+            <div className="flex flex-wrap items-center justify-center gap-2 sm:gap-3">
+              {STORES.map((store) => (
+                <a
+                  key={store.id}
+                  href={`tel:${store.tel}`}
+                  className="inline-flex items-center gap-1.5 rounded-full border border-border bg-card px-3 py-1.5 text-xs sm:text-[13px] font-semibold text-foreground hover:border-primary hover:text-primary transition-colors"
+                >
+                  <Phone className="w-3.5 h-3.5 shrink-0" aria-hidden="true" />
+                  <span>
+                    {store.name} <span className="opacity-70">{store.phone}</span>
+                  </span>
+                </a>
+              ))}
+            </div>
           </div>
         </section>
       </main>

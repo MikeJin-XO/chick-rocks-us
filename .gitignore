@@ -30,3 +30,8 @@ wordpress-theme-upload
 # Local dev artifacts
 .claude/
 live-snapshot/
+
+# Build artifacts
+.next/
+next-env.d.ts
+tsconfig.tsbuildinfo

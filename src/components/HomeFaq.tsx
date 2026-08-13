@@ -2,11 +2,12 @@ import { useState } from "react";
 import { Plus } from "lucide-react";
 import { useEdit } from "@/contexts/EditContext";
 import { InlineEdit } from "@/components/ui/inline-edit";
+import { STORE_CITIES_SENTENCE } from "@/lib/stores";
 
 export const homeFaqItems = [
   {
-    q: "Is Chick Rocks in Astoria and Flushing halal?",
-    a: "Yes. Chick Rocks serves halal chicken at both our Astoria and Flushing locations in Queens.",
+    q: "Is Chick Rocks halal?",
+    a: `Yes. Chick Rocks serves halal chicken at all of our Queens locations — ${STORE_CITIES_SENTENCE}.`,
   },
   {
     q: "Where can I find halal fried chicken in Astoria?",
@@ -17,12 +18,16 @@ export const homeFaqItems = [
     a: "Yes. Chick Rocks serves halal chicken in New World Mall in Flushing, Queens.",
   },
   {
+    q: "Where can I find halal fried chicken in Jackson Heights?",
+    a: "Chick Rocks Jackson Heights is at 83-12 37th Ave, Jackson Heights, NY 11372, open daily from 10 AM to 2 AM for halal fried chicken, wings, sandwiches, pickup, and delivery.",
+  },
+  {
     q: "Does Chick Rocks offer catering?",
     a: "Yes. Chick Rocks offers halal chicken catering in Queens for office lunches, parties, school events, and family gatherings.",
   },
   {
     q: "Can I order Chick Rocks online?",
-    a: "Yes. Customers can order Chick Rocks online for pickup or delivery from our Astoria or Flushing location.",
+    a: `Yes. Customers can order Chick Rocks online for pickup or delivery from any of our ${STORE_CITIES_SENTENCE} locations.`,
   },
 ];
 
@@ -49,7 +54,7 @@ const HomeFaq = () => {
         <InlineEdit
           id="home_faq_heading"
           as="h2"
-          className="text-3xl sm:text-4xl md:text-5xl font-heading uppercase tracking-wide text-foreground text-center text-balance block"
+          className="text-2xl sm:text-4xl md:text-5xl font-heading uppercase tracking-wide leading-tight text-foreground text-center text-balance block"
           isEditing={isEditing}
           value={getDraftValue("home_faq_heading", "Quick Questions About Chick Rocks")}
           onChange={(v) => updateDraft("home_faq_heading", v)}

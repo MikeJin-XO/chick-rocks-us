@@ -1,15 +1,11 @@
 import { useEffect } from "react";
 import { X, Phone } from "lucide-react";
+import { STORES } from "@/lib/stores";
 
 type Props = {
   open: boolean;
   onClose: () => void;
 };
-
-const LOCATIONS = [
-  { name: "Flushing", phone: "(347) 368-6181", tel: "+13473686181" },
-  { name: "Astoria", phone: "(347) 242-3449", tel: "+13472423449" },
-];
 
 const CateringMenuComingSoonModal = ({ open, onClose }: Props) => {
   useEffect(() => {
@@ -63,19 +59,19 @@ const CateringMenuComingSoonModal = ({ open, onClose }: Props) => {
             <X className="w-5 h-5" />
           </button>
         </div>
-        <div className="px-6 sm:px-8 pt-4 pb-6 grid grid-cols-1 sm:grid-cols-2 gap-4">
-          {LOCATIONS.map((loc) => (
+        <div className="px-6 sm:px-8 pt-4 pb-6 flex flex-col gap-3">
+          {STORES.map((store) => (
             <a
-              key={loc.name}
-              href={`tel:${loc.tel}`}
-              className="rounded-2xl border border-border bg-card p-5 flex flex-col items-center text-center gap-2 hover:border-primary transition-colors"
+              key={store.id}
+              href={`tel:${store.tel}`}
+              className="rounded-2xl border border-border bg-card px-5 py-4 flex items-center justify-between gap-4 hover:border-primary transition-colors"
             >
               <span className="text-xs font-bold uppercase tracking-wide text-accent">
-                {loc.name}
+                {store.name}
               </span>
-              <span className="inline-flex items-center gap-2 text-lg font-heading uppercase text-foreground">
+              <span className="inline-flex items-center gap-2 text-base sm:text-lg font-heading uppercase text-foreground whitespace-nowrap">
                 <Phone className="w-4 h-4" aria-hidden="true" />
-                {loc.phone}
+                {store.phone}
               </span>
             </a>
           ))}

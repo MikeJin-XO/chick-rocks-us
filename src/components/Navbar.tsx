@@ -1,10 +1,11 @@
-import { MapPin, Menu, X } from "lucide-react";
+import { Menu, X, ShoppingBag } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { useEdit } from "@/contexts/EditContext";
 import { useOrderModal } from "@/contexts/OrderModalContext";
 import { InlineEdit } from "@/components/ui/inline-edit";
 import { MediaEdit } from "@/components/ui/media-edit";
+import { LocationsDropdown, LocationsList } from "@/components/LocationsMenu";
 
 const Navbar = () => {
   const { isEditing, getDraftValue, updateDraft } = useEdit();
@@ -44,38 +45,8 @@ const Navbar = () => {
                 onChange={(v) => updateDraft("nav_brand", v)}
               />
             </Link>
-            <div className="hidden md:flex items-center gap-4 text-sm text-muted-foreground">
-              <a
-                href="https://pos.chowbus.com/online-ordering/store/chick-rocks/11843"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center gap-1 hover:text-primary transition-colors"
-              >
-                <MapPin className="w-4 h-4" />
-                <InlineEdit
-                  id="nav_location_1"
-                  as="span"
-                  isEditing={isEditing}
-                  value={getDraftValue("nav_location_1", "Flushing, NY")}
-                  onChange={(v) => updateDraft("nav_location_1", v)}
-                />
-              </a>
-              <span className="text-border">|</span>
-              <a
-                href="https://pos.chowbus.com/online-ordering/store/chick-rocks-astoria/20957"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center gap-1 hover:text-primary transition-colors"
-              >
-                <MapPin className="w-4 h-4" />
-                <InlineEdit
-                  id="nav_location_2"
-                  as="span"
-                  isEditing={isEditing}
-                  value={getDraftValue("nav_location_2", "Astoria, NY")}
-                  onChange={(v) => updateDraft("nav_location_2", v)}
-                />
-              </a>
+            <div className="hidden md:flex items-center">
+              <LocationsDropdown />
             </div>
           </div>
           <div className="hidden md:flex items-center gap-6 text-sm font-medium ml-auto">
@@ -136,8 +107,9 @@ const Navbar = () => {
             <button
               type="button"
               onClick={openOrderModal}
-              className="ml-2 inline-flex items-center justify-center bg-primary text-primary-foreground px-5 py-2 rounded-full font-bold uppercase tracking-wide text-xs hover:opacity-90 transition-opacity shadow-sm"
+              className="ml-2 inline-flex items-center justify-center gap-1.5 bg-primary text-primary-foreground px-5 py-2 rounded-full font-bold uppercase tracking-wide text-xs hover:opacity-90 transition-opacity shadow-sm"
             >
+              <ShoppingBag className="w-4 h-4" />
               Order Now
             </button>
           </div>
@@ -175,29 +147,13 @@ const Navbar = () => {
             <button
               type="button"
               onClick={openOrderModal}
-              className="mt-2 inline-flex items-center justify-center bg-primary text-primary-foreground px-4 py-2.5 rounded-full font-bold uppercase tracking-wide text-sm hover:opacity-90 transition-opacity"
+              className="mt-2 inline-flex items-center justify-center gap-1.5 bg-primary text-primary-foreground px-4 py-2.5 rounded-full font-bold uppercase tracking-wide text-sm hover:opacity-90 transition-opacity"
             >
+              <ShoppingBag className="w-4 h-4" />
               Order Now
             </button>
-            <div className="mt-2 pt-2 border-t border-border flex flex-col gap-2 text-muted-foreground">
-              <a
-                href="https://pos.chowbus.com/online-ordering/store/chick-rocks/11843"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center gap-2 px-2 py-2 hover:text-primary transition-colors"
-              >
-                <MapPin className="w-4 h-4" />
-                <span>{getDraftValue("nav_location_1", "Flushing, NY")}</span>
-              </a>
-              <a
-                href="https://pos.chowbus.com/online-ordering/store/chick-rocks-astoria/20957"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center gap-2 px-2 py-2 hover:text-primary transition-colors"
-              >
-                <MapPin className="w-4 h-4" />
-                <span>{getDraftValue("nav_location_2", "Astoria, NY")}</span>
-              </a>
+            <div className="mt-2 pt-2 border-t border-border">
+              <LocationsList onNavigate={() => setMobileOpen(false)} />
             </div>
           </div>
         )}

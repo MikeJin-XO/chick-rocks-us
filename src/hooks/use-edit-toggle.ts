@@ -1,8 +1,16 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useLocation } from "react-router-dom";
 import { toast } from "./use-toast";
+import contentDefaults from "@/lib/data/content-defaults.json";
 
 const pageDataCache: Record<string, Record<string, string>> = {};
+
+// Snapshot of the live site's edit-mode content (promoted from production WordPress
+// post meta), keyed by route path. Used ONLY in local dev where there is no WordPress
+// bridge — it lets localhost render what the live site actually shows instead of the
+// hardcoded inline fallbacks. On production `window.ChickRocksTheme` exists and supplies
+// real post meta, so this is ignored.
+const CONTENT_DEFAULTS = contentDefaults as Record<string, Record<string, string>>;
 
 const MEDIA_KEY_PATTERN = /(bg|img|image|icon|logo|banner|photo)/i;
 const DEFAULT_LANG = "en";
@@ -10,10 +18,16 @@ const DEFAULT_LANG = "en";
 export function useEditToggle() {
   const bridge = window.ChickRocksTheme;
   const location = useLocation();
+  // Local-dev fallback content (empty on production, where the bridge supplies meta).
+  const devContent = bridge ? {} : CONTENT_DEFAULTS;
   const [isEditing, setIsEditing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
-  const [content, setContent] = useState<Record<string, string>>(bridge?.pageData || {});
-  const [draft, setDraft] = useState<Record<string, string>>(bridge?.pageData || {});
+  const [content, setContent] = useState<Record<string, string>>(
+    bridge?.pageData || devContent[location.pathname] || {}
+  );
+  const [draft, setDraft] = useState<Record<string, string>>(
+    bridge?.pageData || devContent[location.pathname] || {}
+  );
   const [postId, setPostId] = useState<number | undefined>(bridge?.postId);
   const [isLoadingPageData, setIsLoadingPageData] = useState(false);
 
@@ -25,6 +39,7 @@ export function useEditToggle() {
   if (!hasLoadedInitialRef.current) {
     if (bridge?.pageData) pageDataCache[location.pathname] = bridge.pageData;
     if (bridge?.allPageData) Object.assign(pageDataCache, bridge.allPageData);
+    if (!bridge) Object.assign(pageDataCache, devContent);
   }
 
   const getLangKey = useCallback(

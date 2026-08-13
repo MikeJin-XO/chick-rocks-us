@@ -22,21 +22,10 @@ const MenuCategories = () => {
         <InlineEdit
           id="menu_heading"
           as="h2"
-          className="text-3xl sm:text-4xl md:text-5xl font-heading text-center uppercase mb-3 sm:mb-4 text-foreground block text-balance"
+          className="text-2xl sm:text-4xl md:text-5xl font-heading text-center uppercase leading-tight mb-8 sm:mb-10 md:mb-12 text-foreground block text-balance"
           isEditing={isEditing}
           value={getDraftValue("menu_heading", "What's on Our Halal Menu?")}
           onChange={(v) => updateDraft("menu_heading", v)}
-        />
-        <InlineEdit
-          id="menu_subtext"
-          as="p"
-          className="text-sm sm:text-base md:text-lg text-center text-muted-foreground max-w-3xl mx-auto mb-8 sm:mb-10 md:mb-12 block text-pretty"
-          isEditing={isEditing}
-          value={getDraftValue(
-            "menu_subtext",
-            "Explore Chick Rocks favorites, including crispy halal fried chicken, chicken sandwiches, rice bowls, spaghetti, drinks, and desserts. Stop by our Astoria or Flushing location for bold halal comfort food in Queens."
-          )}
-          onChange={(v) => updateDraft("menu_subtext", v)}
         />
         <div className="flex md:grid md:grid-cols-6 gap-6 overflow-x-auto md:overflow-visible -mx-4 px-4 md:mx-0 md:px-0 snap-x snap-mandatory md:snap-none scrollbar-hide">
           {categories.map((cat) => {

@@ -8,26 +8,20 @@ import CateringCta from "@/components/CateringCta";
 import HomeFaq, { homeFaqItems } from "@/components/HomeFaq";
 import Footer from "@/components/Footer";
 import Seo, { SITE } from "@/components/Seo";
+import { STORES } from "@/lib/stores";
 
-const homeLd = {
+// The Restaurant/branch nodes are emitted site-wide by <Seo>; the homepage only adds
+// a pointer list so crawlers see all locations enumerated on the primary page.
+const homeLocationsLd = {
   "@context": "https://schema.org",
-  "@type": "Restaurant",
-  name: SITE.NAME,
-  url: SITE.URL,
-  image: `${SITE.URL}/CHICK%20ROCKS.png`,
-  servesCuisine: ["Halal", "Fried Chicken", "American", "Chinese American"],
-  priceRange: "$$",
-  telephone: "",
-  address: {
-    "@type": "PostalAddress",
-    streetAddress: "30-02 Steinway St",
-    addressLocality: "Astoria",
-    addressRegion: "NY",
-    postalCode: "11103",
-    addressCountry: "US",
-  },
-  hasMenu: `${SITE.URL}/menu`,
-  acceptsReservations: false,
+  "@type": "ItemList",
+  name: "Chick Rocks locations",
+  itemListElement: STORES.map((store, i) => ({
+    "@type": "ListItem",
+    position: i + 1,
+    name: `Chick Rocks ${store.name}`,
+    item: `${SITE.URL}#store-${store.id}`,
+  })),
 };
 
 const homeFaqLd = {
@@ -44,12 +38,12 @@ const Index = () => {
   return (
     <div className="min-h-screen bg-background">
       <Seo
-        title="Chick Rocks — Halal Fried Chicken in Astoria & Flushing, NY"
-        description="Crispy halal fried chicken, signature sandwiches, wings, rice bowls and spaghetti combos in Astoria & Flushing, Queens. Dine in, takeout and delivery — order now."
+        title="Chick Rocks — Halal Fried Chicken in Astoria, Flushing & Jackson Heights, NY"
+        description="Crispy halal fried chicken, signature sandwiches, wings, rice bowls and spaghetti combos in Astoria, Flushing & Jackson Heights, Queens. Dine in, takeout and delivery — order now."
         path="/"
-        keywords="halal fried chicken astoria, halal fried chicken nyc, halal fried chicken queens, chick rocks, halal chicken sandwich, halal wings astoria"
+        keywords="halal fried chicken astoria, halal fried chicken jackson heights, halal fried chicken nyc, halal fried chicken queens, chick rocks, halal chicken sandwich, halal wings astoria"
         type="restaurant"
-        jsonLd={[homeLd, homeFaqLd]}
+        jsonLd={[homeLocationsLd, homeFaqLd]}
       />
       <Navbar />
       <HeroSection />

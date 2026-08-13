@@ -103,7 +103,7 @@ const Catering = () => {
           <InlineEdit
             id="catering_page_hero_subtext"
             as="p"
-            className="mt-3 sm:mt-4 text-[13px] sm:text-sm md:text-[15px] leading-relaxed opacity-90 max-w-3xl mx-auto block text-pretty"
+            className="mt-3 sm:mt-4 text-[13px] sm:text-sm md:text-[15px] leading-relaxed opacity-90 max-w-md sm:max-w-3xl mx-auto block text-pretty"
             isEditing={isEditing}
             multiline
             value={getDraftValue(
@@ -174,7 +174,7 @@ const Catering = () => {
               <InlineEdit
                 id="catering_page_section_1_heading"
                 as="h2"
-                className="text-3xl sm:text-4xl md:text-5xl font-heading uppercase leading-tight text-foreground block text-balance"
+                className="text-2xl sm:text-4xl md:text-5xl font-heading uppercase leading-tight text-foreground block text-balance"
                 isEditing={isEditing}
                 value={getDraftValue("catering_page_section_1_heading", "Big Flavor for Every Event")}
                 onChange={(v) => updateDraft("catering_page_section_1_heading", v)}
@@ -246,7 +246,7 @@ const Catering = () => {
               <InlineEdit
                 id="catering_page_section_2_heading"
                 as="h2"
-                className="text-3xl sm:text-4xl md:text-5xl font-heading uppercase leading-tight text-foreground block text-balance"
+                className="text-2xl sm:text-4xl md:text-5xl font-heading uppercase leading-tight text-foreground block text-balance"
                 isEditing={isEditing}
                 value={getDraftValue("catering_page_section_2_heading", "CATERING PACKAGES THAT FIT")}
                 onChange={(v) => updateDraft("catering_page_section_2_heading", v)}
@@ -259,7 +259,7 @@ const Catering = () => {
                 multiline
                 value={getDraftValue(
                   "catering_page_section_2_body",
-                  "Choose from fried chicken trays, sandwich platters, wing buckets, rice bowl packages, spaghetti combos, sides, and drink trays. Whether you need a simple pickup order or a larger catering setup, our Flushing and Astoria locations can help you build a menu that fits. Every catering order is fully halal."
+                  "Choose from fried chicken trays, sandwich platters, wing buckets, rice bowl packages, spaghetti combos, sides, and drink trays. Whether you need a simple pickup order or a larger catering setup, our Queens locations can help you build a menu that fits. Every catering order is fully halal."
                 )}
                 onChange={(v) => updateDraft("catering_page_section_2_body", v)}
               />
@@ -297,7 +297,7 @@ const Catering = () => {
             <InlineEdit
               id="catering_page_cta_heading"
               as="h2"
-              className="text-3xl sm:text-4xl md:text-5xl font-heading uppercase leading-tight text-foreground block text-balance"
+              className="text-2xl sm:text-4xl md:text-5xl font-heading uppercase leading-tight text-foreground block text-balance"
               isEditing={isEditing}
               value={getDraftValue("catering_page_cta_heading", "Ready to Feed the Crowd?")}
               onChange={(v) => updateDraft("catering_page_cta_heading", v)}

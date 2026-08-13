@@ -39,7 +39,7 @@ const CateringCta = () => {
             <InlineEdit
               id="home_catering_heading"
               as="h2"
-              className="text-3xl sm:text-4xl md:text-5xl font-heading uppercase leading-tight text-foreground block text-balance"
+              className="text-2xl sm:text-4xl md:text-5xl font-heading uppercase leading-tight text-foreground block text-balance"
               isEditing={isEditing}
               value={getDraftValue("home_catering_heading", "Halal Catering for Every Crew")}
               onChange={(v) => updateDraft("home_catering_heading", v)}
@@ -52,7 +52,7 @@ const CateringCta = () => {
               multiline
               value={getDraftValue(
                 "home_catering_body",
-                "Make your next event easy with Chick Rocks halal chicken catering in Queens. From crispy fried chicken and sandwiches to rice bowls, sides, and party trays, we help feed office lunches, school events, birthdays, and family gatherings in Astoria and Flushing."
+                "Make your next event easy with Chick Rocks halal chicken catering in Queens. From crispy fried chicken and sandwiches to rice bowls, sides, and party trays, we help feed office lunches, school events, birthdays, and family gatherings across Queens."
               )}
               onChange={(v) => updateDraft("home_catering_body", v)}
             />

@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, type MouseEvent } from "react";
 import { Link, useParams } from "react-router-dom";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
@@ -133,13 +133,34 @@ const BlogPost = () => {
     { name: post.title, path: `/blog/${post.slug}` },
   ]);
 
+  // Blog post bodies are raw WordPress HTML, so "order" CTAs in the copy can't call
+  // React directly. They use href="#order" (we also tolerate any /order path) — intercept
+  // those clicks and open the store-picker order popup instead of navigating.
+  const handleBodyClick = (e: MouseEvent<HTMLDivElement>) => {
+    const anchor = (e.target as HTMLElement).closest("a");
+    if (!anchor) return;
+    const href = anchor.getAttribute("href") || "";
+    let isOrder = href === "#order";
+    if (!isOrder && href) {
+      try {
+        isOrder = new URL(href, window.location.origin).pathname.replace(/\/+$/, "") === "/order";
+      } catch {
+        /* relative/invalid href — ignore */
+      }
+    }
+    if (isOrder) {
+      e.preventDefault();
+      openOrderModal();
+    }
+  };
+
   return (
     <div className="min-h-screen bg-background flex flex-col">
       <Seo
         title={`${post.title} | Chick Rocks Blog`}
         description={
           post.excerpt ||
-          `${post.title} — from the Chick Rocks halal fried chicken blog in Astoria & Flushing, NY.`
+          `${post.title} — from the Chick Rocks halal fried chicken blog in Astoria, Flushing & Jackson Heights, NY.`
         }
         path={`/blog/${post.slug}`}
         type="article"
@@ -201,6 +222,7 @@ const BlogPost = () => {
 
         <div
           className="prose prose-neutral max-w-none text-foreground leading-relaxed space-y-5 [&_p]:mb-5 [&_h2]:text-2xl [&_h2]:font-heading [&_h2]:uppercase [&_h2]:mt-10 [&_h2]:mb-3 [&_h3]:text-xl [&_h3]:font-semibold [&_h3]:mt-8 [&_h3]:mb-2 [&_ul]:list-disc [&_ul]:pl-6 [&_ol]:list-decimal [&_ol]:pl-6 [&_a]:text-primary [&_a]:underline [&_img]:rounded-xl [&_img]:my-6"
+          onClick={handleBodyClick}
           dangerouslySetInnerHTML={{ __html: post.body }}
         />
 

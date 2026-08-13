@@ -1,0 +1,14 @@
+import fs from "fs";
+const [,, OUT, Ws, Hs] = process.argv; const W=Number(Ws), H=Number(Hs);
+const t = await (await fetch(`http://localhost:9343/json/new?http://localhost:5180/catering`,{method:"PUT"})).json();
+const ws=new WebSocket(t.webSocketDebuggerUrl); let id=0; const p=new Map();
+const send=(m,pa={})=>new Promise(r=>{const i=++id;p.set(i,r);ws.send(JSON.stringify({id:i,method:m,params:pa}));});
+ws.addEventListener("message",e=>{const m=JSON.parse(e.data);if(m.id&&p.has(m.id)){p.get(m.id)(m.result);p.delete(m.id);}});
+await new Promise(r=>ws.addEventListener("open",r));
+await send("Page.enable");
+await send("Emulation.setDeviceMetricsOverride",{width:W,height:H,deviceScaleFactor:2,mobile:W<900});
+await send("Page.navigate",{url:"http://localhost:5180/catering"});
+await new Promise(r=>setTimeout(r,5000));
+const s=await send("Page.captureScreenshot",{format:"png",clip:{x:0,y:0,width:W,height:H,scale:2}});
+fs.writeFileSync(OUT,Buffer.from(s.data,"base64"));
+console.log("shot",W,"x",H); ws.close();

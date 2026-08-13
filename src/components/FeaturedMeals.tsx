@@ -24,7 +24,7 @@ const FeaturedMeals = () => {
             <InlineEdit
               id="catering_heading"
               as="h2"
-              className="text-3xl sm:text-4xl md:text-5xl font-heading uppercase leading-tight text-foreground block text-balance"
+              className="text-2xl sm:text-4xl md:text-5xl font-heading uppercase leading-tight text-foreground block text-balance"
               isEditing={isEditing}
               value={getDraftValue("catering_heading", "All-Halal Menu With Asian Flavor")}
               onChange={(v) => updateDraft("catering_heading", v)}
@@ -37,7 +37,7 @@ const FeaturedMeals = () => {
               multiline
               value={getDraftValue(
                 "catering_body_1",
-                "At Chick Rocks, we serve halal fried chicken, spicy chicken sandwiches, wings, rice bowls, spaghetti, and bubble tea with bold Asian-American flavor. Visit us in Astoria or Flushing for crispy halal comfort food made fresh for every craving."
+                "At Chick Rocks, we serve halal fried chicken, spicy chicken sandwiches, wings, rice bowls, spaghetti, and bubble tea with bold Asian-American flavor. Visit us in Astoria, Flushing or Jackson Heights for crispy halal comfort food made fresh for every craving."
               )}
               onChange={(v) => updateDraft("catering_body_1", v)}
             />

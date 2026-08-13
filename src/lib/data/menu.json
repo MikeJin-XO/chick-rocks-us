@@ -457,19 +457,27 @@
   },
   {
     "category": "Snack",
+    "name": "cheese fries",
+    "name_zh": "芝士薯条",
+    "description": "",
+    "price": "",
+    "image": "snack-cheese_fries.jpg"
+  },
+  {
+    "category": "Snack",
+    "name": "loaded fries",
+    "name_zh": "豪华薯条",
+    "description": "",
+    "price": "",
+    "image": "snack-loaded_fries.jpg"
+  },
+  {
+    "category": "Snack",
     "name": "popcorn chicken",
     "name_zh": "劲爆鸡米花",
     "description": "",
     "price": "$5.99",
     "image": "snack-popcorn_chicken.jpg"
-  },
-  {
-    "category": "Snack",
-    "name": "corn cup",
-    "name_zh": "超级玉米杯",
-    "description": "",
-    "price": "$3.99",
-    "image": "snack-corn_cup.jpg"
   },
   {
     "category": "Snack",

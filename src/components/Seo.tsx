@@ -1,4 +1,5 @@
 import { useEffect } from "react";
+import { STORES, STORE_CITIES_SENTENCE, storeLd } from "@/lib/stores";
 
 const SITE_URL = "https://chickrocksusa.com";
 const SITE_NAME = "Chick Rocks";
@@ -60,16 +61,19 @@ const setJsonLd = (id: string, data: JsonLd | undefined) => {
   document.head.appendChild(script);
 };
 
+const BRAND_ID = `${SITE_URL}#restaurant`;
+
+// Brand-level node. Individual branches (with their own address, phone and hours)
+// are emitted separately below as `siteLocationsLd` and point back here.
 const siteOrganizationLd = {
   "@context": "https://schema.org",
   "@type": "Restaurant",
-  "@id": `${SITE_URL}#restaurant`,
+  "@id": BRAND_ID,
   name: SITE_NAME,
   url: SITE_URL,
   logo: `${SITE_URL}/logo.webp`,
   image: DEFAULT_OG_IMAGE,
-  description:
-    "Chick Rocks serves halal fried chicken, signature chicken sandwiches, wings, rice bowls and spaghetti combos in Astoria and Flushing, NY.",
+  description: `Chick Rocks serves halal fried chicken, signature chicken sandwiches, wings, rice bowls and spaghetti combos in ${STORE_CITIES_SENTENCE}, NY.`,
   servesCuisine: ["Halal", "Fried Chicken", "American", "Chinese American"],
   priceRange: "$$",
   acceptsReservations: false,
@@ -79,32 +83,22 @@ const siteOrganizationLd = {
     "https://www.facebook.com/chickrocks2022/",
     "https://www.tiktok.com/@chickrockinc",
   ],
-  address: [
-    {
-      "@type": "PostalAddress",
-      streetAddress: "30-02 Steinway St",
-      addressLocality: "Astoria",
-      addressRegion: "NY",
-      postalCode: "11103",
-      addressCountry: "US",
-    },
-    {
-      "@type": "PostalAddress",
-      streetAddress: "136-20 Roosevelt Ave #25",
-      addressLocality: "Flushing",
-      addressRegion: "NY",
-      postalCode: "11354",
-      addressCountry: "US",
-    },
-  ],
+  address: STORES.map((s) => ({
+    "@type": "PostalAddress",
+    addressCountry: "US",
+    ...s.postal,
+  })),
+  subOrganization: STORES.map((s) => ({ "@id": `${SITE_URL}#store-${s.id}` })),
 };
+
+const siteLocationsLd = STORES.map((s) => storeLd(s, SITE_URL, BRAND_ID));
 
 const Seo = ({
   title,
   description,
   path,
   image = DEFAULT_OG_IMAGE,
-  imageAlt = "Chick Rocks — Halal Fried Chicken in Astoria and Flushing, NY",
+  imageAlt = `Chick Rocks — Halal Fried Chicken in ${STORE_CITIES_SENTENCE}, NY`,
   type = "website",
   keywords,
   noIndex = false,
@@ -148,6 +142,7 @@ const Seo = ({
     upsertMeta('meta[name="twitter:image:alt"]', { name: "twitter:image:alt", content: imageAlt });
 
     setJsonLd("ld-site-restaurant", siteOrganizationLd);
+    setJsonLd("ld-site-locations", siteLocationsLd);
 
     const pageLdList = Array.isArray(jsonLd) ? jsonLd : jsonLd ? [jsonLd] : [];
     setJsonLd("ld-page-0", pageLdList[0]);
